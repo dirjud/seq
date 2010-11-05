@@ -1,8 +1,8 @@
 import seq
 import Sequence
 
-class Sequencer(object):
-    """A 'Sequencer' reprasents a state machine that serially executes
+class Bin(object):
+    """A 'Bin' reprasents a state machine that serially executes
 'Sequences'.  The state machine that can be generated from this class
 from a 'Writer' generates HDL with a sequencer interface.  This interface
 has two inputs that are HDL signals called 'start' and 'seq'.  The
@@ -24,7 +24,7 @@ least one cycle 'wasted' time required to change when
 starting/completing sequences.  You can implement custom Sequences,
 however, to get around this in a critical section.
 
-Sequencers execute a series of 'Sequences'.  Sequences must implement
+Bins execute a series of 'Sequences'.  Sequences must implement
 the Sequence interface and can be things like ChildSequence, ...
 
 """
@@ -32,9 +32,9 @@ the Sequence interface and can be things like ChildSequence, ...
     def __init__(self, name, seqs, regs=[], children=[], register_done=True, reset_n="reset_n"):
         """
 :param name : A string name for this sequencer.  The HDL writer will create a module with this name in a file with this name.  Think carefully about uniqueness.
-:param seqs : A list of Sequences that this Sequencer controls.  The index number of each sequence becomes the 'seq' code used by the HDL
-:param regs : A list of Signals that are the registers overwhich this Sequencer has control.  Any register in this list can be controlled by Sequences such as Set, Trigger, Toggle.
-:param children : A list of children Sequencers that this Sequencer controls.  Make it an empty list if this is a base Sequencer with no children.
+:param seqs : A list of Sequences that this Bin controls.  The index number of each sequence becomes the 'seq' code used by the HDL
+:param regs : A list of Signals that are the registers overwhich this Bin has control.  Any register in this list can be controlled by Sequences such as Set, Trigger, Toggle.
+:param children : A list of children Bins that this Bin controls.  Make it an empty list if this is a base Bin with no children.
 :param register_done: A boolean indicating whether the done signal from this sequencer is registered.  False will make the transition of child sequences faster but incure longer logic paths.  The logic can get quite long as hierarchy gets larger.  An occasional registering of the done signal can significantly reduce logic paths if the hierarchy of sequencers is deep.  Leave low level paths un-registered and register higher level sequences where an extra cycle delay in the transition is not critical.
 """
         self.name = name
@@ -52,7 +52,7 @@ the Sequence interface and can be things like ChildSequence, ...
             self.regs[reg.name] = reg
             self.ports[reg.name] = seq.Port(reg, "output", reg=True)
 
-        # merge ports from child Sequencers in and remove any 'reg' qualifiers
+        # merge ports from child Bins in and remove any 'reg' qualifiers
         for child in self.children:
             for port in child.ports.values():
                 # Check if this port is in our register list.  If so, we terminate
@@ -70,7 +70,7 @@ the Sequence interface and can be things like ChildSequence, ...
             self._children_starts[child.name] = []
 
         # The self.allseqs a is flatten dict of all Sequences under
-        # control of this Sequencer keyed off the name of each Sequence
+        # control of this Bin keyed off the name of each Sequence
         self.allseqs = dict()
 
         # Some Sequences need to share static data between all Sequences
@@ -178,7 +178,7 @@ method on his sub-Sequences.
         return s
 
     def vlog_dump(self, outdir="", filename=None, recurse=False):
-        """Creates a verilog implementation of this Sequencer.
+        """Creates a verilog implementation of this Bin.
 
 :param outdir: path to dump file in. Should include trailing path deliminter.
 :param filename: If None, then the file will be called 'name'.v, where name is the name provided when you created this function.  Otherwise, the filename will be that specified by this parameter.
@@ -308,7 +308,7 @@ Example:
         s.append("    end")
         s.append("  end\n")
         
-        # Creates verilog instances of the children Sequencers
+        # Creates verilog instances of the children Bins
         for child in self.children:
             s.append
             s.append("  %s u_%s_(" % (child.name, child.name, ))
@@ -394,15 +394,15 @@ level)"""
 
 
 
-class Len1Sequencer(Sequencer):
-    """A 'Len1Sequencer' extends Sequencer but must only be used with
+class Len1Bin(Bin):
+    """A 'Len1Bin' extends Bin but must only be used with
 Sequences that are guarenteed to only take a single clock cycle to
-complete.  Because a Len1Sequencer assumes each of its Sequences will
+complete.  Because a Len1Bin assumes each of its Sequences will
 complete in a single clock cycle, can export its done and running
 signal without any logical dependance on its member Sequences, thus
-realizing hardware savings.  So this Sequencer realizes logic savings
+realizing hardware savings.  So this Bin realizes logic savings
 can produce a registered done output in a single clock cycle, which is
-not possible with the more general Sequencer.  Therefore, with this
+not possible with the more general Bin.  Therefore, with this
 sequencer, the 'registered_done' condition is realized in a single
 clock cycle regardless.
 
@@ -414,7 +414,7 @@ Debugging hint: One way to check that all the member Sequences are
 indeed length 1 sequences is to compare the 'done' output signal with
 the 'done_' internal signal.  The internal 'done_' signal is still
 generated based on the done condition of the member Sequences, but it
-is ignored by this Sequencer and assumed to occur immediately.
+is ignored by this Bin and assumed to occur immediately.
 Therefore, this Sequncer generates its output done condition by simply
 sampling the start input.  If the internal 'done_' signal, however is
 not following the output 'done' signal, then it means this assumption
@@ -445,7 +445,7 @@ may behave just fine if they cut short while others may not.
 
 
     def _vlog_gen_running(self):
-        """running and done are the same for this Sequencer."""
+        """running and done are the same for this Bin."""
         return  [ "  assign running = done_reg;", ]
 
 
