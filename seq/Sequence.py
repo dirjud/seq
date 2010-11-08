@@ -1266,14 +1266,47 @@ Signed Example:
 ################################################################################
 class Add(Sequence):
     """
-This sequence will add two signals together.
+This sequence will add two signals together. If the 'out' signal is
+not sufficiently wide to store the output, then you can specify a the
+'clamp' option to prevent overflow. If the output is signed, then 2's
+compliment clamping is used to clamp most negative and most positive,
+otherwise just most positive is clamped.
 
 :param a: Signal or int that is the first input to be added
 :param b: Signal or int that is the second input to be added
 :param out: reg (signal or string) to save the result in.
 :param clamp: should the output be clamped if overflow is possible.
+
 Example:
-    TODO
+
+    a1 = seq.Signal("a1", width=4)
+    b1 = seq.Signal("b1", width=4)
+    out1 = seq.Signal("out1", width=5, signed=False)
+    a2 = seq.Signal("a2", width=4, signed=True)
+    b2 = seq.Signal("b2", width=4, signed=True)
+    out2 = seq.Signal("out2", width=5, signed=True)
+    
+    out3 = seq.Signal("out3", width=4, signed=False)
+    out4 = seq.Signal("out4", width=4, signed=False)
+    out5 = seq.Signal("out5", width=3, signed=True)
+    out6 = seq.Signal("out6", width=4, signed=True)
+    out7 = seq.Signal("out7", width=20, signed=True)
+    
+    test1 = Bin.Bin(
+        name = "test1",
+        regs = [ out1, out2, out3, out4, out5, out6, out7 ],
+        seqs = [
+            Sequence.Add(a=a1, b=b1, out="out1"),
+            Sequence.Add(a=a2, b=b2, out="out2"),
+            Sequence.Add(a=a1, b=b1, out="out3"),
+            Sequence.Add(a=a1, b=b1, out="out4", clamp=True),
+            Sequence.Add(a=a2, b=b2, out=out5,   clamp=True),
+            Sequence.Add(a=a2, b=b2, out=out6,   clamp=True),
+            Sequence.Add(a=a2, b=b2, out=out7,   clamp=True),
+            ]
+        )
+    test1.vlog_dump()
+
 """
     def __init__(self, a, b, out, clamp=False, **kw):
         self.ab = [a,b]
@@ -1285,8 +1318,6 @@ Example:
         self.ab = [a,b]
         self.out = out
         self.justify = justify
-        if not(justify in ["right", "left"]):
-            raise Exception("justify argument must be 'right' or 'left'. You provided %s." % justify)
 
         Sequence.__init__(self, **kw)
 
