@@ -25,8 +25,8 @@ specified number of clock cycles, or sync to an external
 signals. Users can also write their own as necessary.
 
 ``Sequences`` have a very simple control interface that allows them to
-plugged into each other in any way desired. The control inferface of a
-``Sequence`` is shown below:
+be plugged into each other in any way desired. The control inferface
+of a ``Sequence`` is shown below:
 
 .. image:: _static/sequence.*
 
@@ -39,10 +39,10 @@ sequencer will issue a one-shot ``done`` pulse and drop the
 
 .. image:: _static/sequence_timing.*
 
-With this interface, ``Sequences`` can be plugged into each in many
-different forms to form new kinds of ``Sequences``.  For example, the
-serial ``Sequence`` encapsulates two or more ``Sequences`` and
-executes its subsequences serially as shown below:
+With this interface, ``Sequences`` can be connected to each other in
+many different forms to create new kinds of ``Sequences``.  For
+example, the Serial ``Sequence`` encapsulates two or more
+``Sequences`` and executes its subsequences serially as shown below:
 
 .. image:: _static/serial_sequence.*
 
@@ -73,14 +73,13 @@ control. For example, a ``Bin`` may have a output register called
 
 .. image:: _static/bin.*
 
-A more detailed look at a ``Bin`` is shown below. This figure shows
-the three collections that a ``Bin`` has. The collection of
+A more detailed look at a ``Bin`` is shown below. The collection of
 ``Sequences`` are addressable via the ``seq`` input. The ``start``,
 ``running``, and ``done`` control signals get
-demultiplexed/multiplexed onto the ``Sequence`` being selected.
-The member ``Sequences`` then implement the logic necessary
-to control the collection of children ``Bins`` and the collection
-of memeber registers. 
+demultiplexed/multiplexed onto the ``Sequence`` being selected.  The
+member ``Sequences`` then implement the logic necessary to control the
+collection of children ``Bins`` and the collection of member
+registers.
 
 .. image:: _static/bin_exploded.*
 

@@ -67,7 +67,6 @@ module fir_top
       .xin				(xin1),
       .seq				(1'b0),
       .start				(we_s),
-
       .addr				(fir_addr),
       .xout				(xout_raw),
       .mult				(),

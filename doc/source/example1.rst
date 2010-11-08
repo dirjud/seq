@@ -1,5 +1,5 @@
-First Example
-=============
+Simple Example
+==============
 
 Suppose you need a state machine that issues a one-shot trigger that
 is a delayed version of a received one-shot trigger. Under one

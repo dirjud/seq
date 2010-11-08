@@ -7,25 +7,21 @@ seq : Hierarchical HDL Sequencer Generation
 ===========================================
 
 Do you write HDL (Hardware Desciptive Language)? Are you tired of
-programming complex state machines? Do you want a more flexible
-framework for creating complex state machines that are easy to change
-and parameterize? ``seq`` is the tool for you then. You can easily
-generate the HDL for state machines from a simple specification.
-
-Example
--------
-
-FIR Filter?
-
+programming and debugging complex state machines? Do you want a more
+flexible framework for creating complex state machines that are easy
+to change and parameterize? ``seq`` is a tool to address this issues.
+It easily generates the HDL for state machines from a simple,
+hierarchical specification.
 
 Table Of Contents
 -----------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    intro
    example1
+   fir_example
    seq
    sequence
    bin
