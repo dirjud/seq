@@ -1,0 +1,5 @@
+seq
+============
+
+.. automodule:: seq
+   :members:
