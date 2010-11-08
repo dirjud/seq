@@ -1127,7 +1127,7 @@ is not currently implemented.
 :param out: reg (signal or string) to save the result in.
 :param justify: str that is either "left" or "right"
 
-Unsigned Example:
+Unsigned Example::
 
     a1 = seq.Signal("a1", width=4)
     b1 = seq.Signal("b1", width=4)
@@ -1139,7 +1139,7 @@ Unsigned Example:
         )
     test1.vlog_dump()
 
-Signed Example:
+Signed Example::
 
     out2 = seq.Signal("out2", width=8, signed=True)
     test2 = Bin.Bin(
@@ -1277,7 +1277,7 @@ otherwise just most positive is clamped.
 :param out: reg (signal or string) to save the result in.
 :param clamp: should the output be clamped if overflow is possible.
 
-Example:
+Example::
 
     a1 = seq.Signal("a1", width=4)
     b1 = seq.Signal("b1", width=4)

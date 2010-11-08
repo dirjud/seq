@@ -1,0 +1,20 @@
+Installation Guide
+==================
+
+seq is a python application, and as such you will first need to install
+Python (http://www.python.org).
+
+From a Unix world, you can then run::
+
+  make build
+  sudo make install
+
+From a Windows world that does not have make, run::
+
+  python setup.py build
+  python setup.py install
+
+
+Then can write your specifications and generate your HDL using
+python. See the examples in the examples directory and in the
+documentation.
