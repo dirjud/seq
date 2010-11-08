@@ -15,22 +15,25 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 class Signal(object):
-    def __init__(self, name, width=1, init=0):
+    def __init__(self, name, width=1, init=0, signed=False):
         self.width = width
         self.name = name
         self.init = init
+        self.signed=""
+        if(signed):
+            self.signed = "signed"
 
     def vlog_declaration(self, type, prefix="", suffix=""):
         """Returns a verilog declaration for this statement that of
         type 'type'.  e.g. if type can be input, output, reg, wire,
         etc."""
         if(self.width > 1):
-            return "%s [%d:0] %s%s%s" % (type, self.width-1, prefix, self.name, suffix)
+            return "%s %s [%d:0] %s%s%s" % (type, self.signed, self.width-1, prefix, self.name, suffix)
         else:
             return "%s %s%s%s" % (type, prefix, self.name, suffix)
 
     def __str__(self):
-        return "<Sequencer.Signal.Signal name=%s width=%d init=%d>" % (self.name, self.width, self.init)
+        return "<Sequencer.Signal.Signal name=%s width=%d init=%d %s>" % (self.name, self.width, self.init, self.signed)
 
 
 class Port(object):
