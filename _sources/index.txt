@@ -20,12 +20,14 @@ Table Of Contents
    :maxdepth: 1
 
    intro
+   install
    example1
    fir_example
-   seq
+   api
    sequence
    bin
    sequence_creation
+
 
 
 Indices and tables

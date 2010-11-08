@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>seq &mdash; seq v1 documentation</title>
+    <title>Installation Guide &mdash; seq v1 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
@@ -19,7 +19,9 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="seq v1 documentation" href="index.html" /> 
+    <link rel="top" title="seq v1 documentation" href="index.html" />
+    <link rel="next" title="Simple Example" href="example1.html" />
+    <link rel="prev" title="Introduction" href="intro.html" /> 
   </head>
   <body>
     <div class="related">
@@ -31,6 +33,12 @@
         <li class="right" >
           <a href="modindex.html" title="Global Module Index"
              accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="example1.html" title="Simple Example"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="intro.html" title="Introduction"
+             accesskey="P">previous</a> |</li>
         <li><a href="index.html">seq v1 documentation</a> &raquo;</li> 
       </ul>
     </div>  
@@ -40,8 +48,21 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="module-seq">
-<h1>seq<a class="headerlink" href="#module-seq" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="installation-guide">
+<h1>Installation Guide<a class="headerlink" href="#installation-guide" title="Permalink to this headline">¶</a></h1>
+<p>seq is a python application, and as such you will first need to install
+Python (<a class="reference external" href="http://www.python.org">http://www.python.org</a>).</p>
+<p>From a Unix world, you can then run:</p>
+<div class="highlight-python"><pre>make build
+sudo make install</pre>
+</div>
+<p>From a Windows world that does not have make, run:</p>
+<div class="highlight-python"><pre>python setup.py build
+python setup.py install</pre>
+</div>
+<p>Then can write your specifications and generate your HDL using
+python. See the examples in the examples directory and in the
+documentation.</p>
 </div>
 
 
@@ -50,9 +71,15 @@
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="intro.html"
+                                  title="previous chapter">Introduction</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="example1.html"
+                                  title="next chapter">Simple Example</a></p>
             <h3>This Page</h3>
             <ul class="this-page-menu">
-              <li><a href="_sources/seq.txt"
+              <li><a href="_sources/install.txt"
                      rel="nofollow">Show Source</a></li>
             </ul>
           <div id="searchbox" style="display: none">
@@ -81,6 +108,12 @@
         <li class="right" >
           <a href="modindex.html" title="Global Module Index"
              >modules</a> |</li>
+        <li class="right" >
+          <a href="example1.html" title="Simple Example"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="intro.html" title="Introduction"
+             >previous</a> |</li>
         <li><a href="index.html">seq v1 documentation</a> &raquo;</li> 
       </ul>
     </div>
