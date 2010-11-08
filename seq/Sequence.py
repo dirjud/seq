@@ -356,18 +356,18 @@ class Stall(Set):
     used to figure out the biggest counter needed amongst all the
     instances of this class.
 
-:param count: A seq.Signal that tells this sequence how many
-    clock cycles to stall for.  It can also be an integer if the stop
-    count should be hard coded.  If it is a str, then the Signal will
-    be looked up in the regs list of the parent sequencer.  The stall
-    duration does not include the 'start' one shot value.
-
-:param set: A dict of signals and their value to be set for the
-    duration of this stall state. See Set sequence for more
-    information.
-
-:param set_at_end: A bool that when True specifies that set should occur
-    at the end of the stall period.  Otherwise it occurs at the beginning.
+    :param count: A seq.Signal that tells this sequence how many
+        clock cycles to stall for.  It can also be an integer if the stop
+        count should be hard coded.  If it is a str, then the Signal will
+        be looked up in the regs list of the parent sequencer.  The stall
+        duration does not include the 'start' one shot value.
+    
+    :param set: A dict of signals and their value to be set for the
+        duration of this stall state. See Set sequence for more
+        information.
+    
+    :param set_at_end: A bool that when True specifies that set should occur
+        at the end of the stall period.  Otherwise it occurs at the beginning.
 """
 
     def __init__(self, count, set={}, set_at_end=False, **kw):
@@ -1116,60 +1116,90 @@ Example: Suppose your Sequencer has a registers named 'X', 'Y', and
   SerialMultiply(a=X, b=Y, out=Z)
 
 """
-    def __init__(self, a, b, out, **kw):
+    def __init__(self, a, b, out, justify="right", **kw):
         self.ab = [a,b]
         self.out = out
+        self.justify = justify
+        if not(justify in ["right", "left"]):
+            raise Exception("justify argument must be 'right' or 'left'. You provided %s." % justify)
         Sequence.__init__(self, **kw)
 
     def link(self, sequencer, parent, data):
         Sequence.link(self, sequencer, parent, data)
 
-        # create the signals in a mapping for easy lookup and
-        # put Signals into the port list if they are setting
-        # to a signal rather than a constant.
-        self.mapping = {}
         self.inputs = {}
         for i,ab in self.ab:
             if type(ab) is str: # replace string with reg Signal
                 self.ab[i] = self.use_reg(ab)
             elif(type(ab) is int):
-                self.ab[i] = seq.Signal(str(self.stop_count), width=seq.calc_width(self.stop_count+1), init=0)
-
-            if not(self.sequencer.regs.has_key(k)):
-                raise Exception("Parent does not have a register called %s in Sequence %s %s" % (k, self.name, self))
-
-            if type(v) is seq.Signal:
-                val = v.name
-                self.sequencer.register_port(seq.Port(v, "input")) # create as in input port as it must be supplied externally
+                self.ab[i] = seq.Signal(str(ab), width=seq.calc_width(ab+1), init=0)
+            elif type(ab) is seq.Signal:
+                self.sequencer.register_port(seq.Port(ab, "input")) # create as in input port as it must be supplied externally
             else:
-                val = v
+                raise Exception("Unknown type=%s for a/b argument" % type(ab))
 
-            self.mapping[k] = str(val)
+        if type(out) is str:
+            self.out = self.use_reg(out)
+        elif type(out) is seq.Signal:
+            if not(out in self.sequencer.regs):
+                raise Exception("Parent does not have a register called %s in Sequence %s %s" % (out.name, self.name, self))
+        else:
+            raise Exception("Unknown type=%s for out argument" % type(out))
+
+        if(self.ab[0].signed != self.ab[1].signed):
+            raise Exception("a and b must match in term of signs (signed or unsigned)")
+        if(self.ab[0].signed != self.out.signed):
+            raise Exception("a and out must match in term of signs (signed or unsigned)")
+
+        if data[SerialMultiply].has_key("max_width"):
+            if(data[SerialMultiply]["max_width"] < self.ab[1].width):
+                data[SerialMultiply]["max_width"] = self.ab[1].width;
+        else:
+            data[SerialMultiply]["max_width"] = self.ab[1].width;
+
+    def _vlog_gen_declare(self):
+        s = Set._vlog_gen_declare(self)
+        s.append("wire serial_mult_done_%s_;" % (self.name, ))
+        return s
+
 
     def _vlog_gen_seq(self, set_at_end=False):
-        if(self.mapping):
-            s = []
-            if(self.dryrun):
-                s.append("if(!(%s)) begin" % self.dryrun)
-
-            if self.set_at_end:
-                s.append("if(%s) begin" % (self.done, ))
-            else:
-                s.append("if(%s) begin" % (self.start, ))
-
-            for sig, val in self.mapping.iteritems():
-                s.append("  %s <= %s;" % (sig, val))
-            s.append("end")
-
-            if(self.dryrun):
-                s.append("end")
-            return s
-        else:
-            return []
+        s = []
+        s.append(['if(%s[serial_multiply_count_]) begin' % self.ab[1].name])
+        s.append(['   if(serial_multiply_count_ == %d-1) begin' % self.ab[1].width])
+        s.append(['      serial_multiply_accum_ <= serial_multiply_accum_by_2_ - serial_multiply_a0_;'])
+        s.append(['   end else begin'])
+        s.append(['      serial_multiply_accum_ <= serial_multiply_accum_by_2_ + serial_multiply_a0_;'])
+        s.append(['   end'])
+        s.append(['end else begin'])
+        s.append(['   serial_multiply_accum_ <= serial_multiply_accum_by_2_;'])
+        s.append(['end'])
+        return s
     
+    def _vlog_gen_done(self):
+        return "%s & serial_mult_done_%s_" % (self.running, self.name)
+
     def _vlog_gen_running(self):
         return [ "%s <= %s;" % (self.running, self.start,) ]
 
-    def _vlog_gen_done(self):
-        return self.running
+    @staticmethod
+    def vlog_gen_static_logic(data):
+        start = [inst.start for inst in data[SerialMultiply]["insts"]]
+        
+        s = ["  reg  [%d:0] serial_multiply_count_;" % (data[SerialMultiply]["max_width"]-1, ),
+             "  wire start_serial_multiply_ = %s;" % (" || ".join(start)),
+             "  wire [%d:0] next_serial_multiply_count_ = (start_serial_multiply_) ? 0 : (&serial_multiply_count_) ? serial_multiply_count_ : serial_multiply_count_ + 1;" % (data[SerialMultiply]["max_width"]-1, ),
+             "  /* verilator lint_off WIDTH */", ]
+        for inst in data[SerialMultiply]["insts"]:
+            s.append("  assign serial_multiply_done_%s_ = serial_multiply_count_ >= (%s-%d'b1);" % (inst.name, inst.ab[1].name, inst.ab[1].width))
+        s.append("  /* verilator lint_on WIDTH */" )
+        s.extend(["  always @(posedge clk or negedge reset_n) begin",
+                  "    if(!reset_n) begin",
+                  "      serial_multiply_count_ <= 0;",
+                  "    end else begin",
+                  "      serial_multiply_count_ <= next_serial_multiply_count_;",
+                  "    end",
+                  "  end\n",
+                  ])
+        return s
 ################################################################################
