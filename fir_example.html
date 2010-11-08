@@ -1,0 +1,333 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>FIR Filter Example &mdash; seq v1 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="seq v1 documentation" href="index.html" />
+    <link rel="next" title="seq" href="seq.html" />
+    <link rel="prev" title="Simple Example" href="example1.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="seq.html" title="seq"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="example1.html" title="Simple Example"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">seq v1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="fir-filter-example">
+<h1>FIR Filter Example<a class="headerlink" href="#fir-filter-example" title="Permalink to this headline">¶</a></h1>
+<p>Now we create a more interesting example and implement an FIR
+filter. This will introduce two new concepts of registers and <tt class="docutils literal"><span class="pre">Bin</span></tt>
+hierarchy.</p>
+<p>Here is the code to generate a simple FIR filter.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49</pre></div></td><td class="code"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">seq</span>
+<span class="kn">from</span> <span class="nn">seq</span> <span class="kn">import</span> <span class="n">Bin</span><span class="p">,</span> <span class="n">Sequence</span>
+
+<span class="c"># create the signal definitions</span>
+<span class="n">xin</span>   <span class="o">=</span> <span class="n">seq</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;xin&quot;</span><span class="p">,</span>  <span class="n">width</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>   <span class="n">signed</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">coeff</span> <span class="o">=</span> <span class="n">seq</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;coeff&quot;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>   <span class="n">signed</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">mult</span>  <span class="o">=</span> <span class="n">seq</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;mult&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>  <span class="n">signed</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">xout</span>  <span class="o">=</span> <span class="n">seq</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;xout&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>  <span class="n">signed</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="c"># Create the base fir Bin that has the basic sequences necessary to</span>
+<span class="c"># create a MAC (Multiply, ACcumulate) and to reset it.</span>
+<span class="n">fir_base</span> <span class="o">=</span> <span class="n">Bin</span><span class="o">.</span><span class="n">Bin</span><span class="p">(</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;fir_base&quot;</span><span class="p">,</span>
+    <span class="n">regs</span> <span class="o">=</span> <span class="p">[</span><span class="n">mult</span><span class="p">,</span> <span class="n">xout</span><span class="p">],</span>
+    <span class="n">seqs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="c"># Create a sequence to reset the output accumulator</span>
+        <span class="n">Sequence</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;reset&quot;</span><span class="p">,</span> <span class="nb">set</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">xout</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
+
+        <span class="c"># Implement a multiplier that can multiply tap coeffs and</span>
+        <span class="c"># input samples. This is a serial multiplier, which means it</span>
+        <span class="c"># is slower but smaller than a single clock multiply.  If</span>
+        <span class="c"># speed is essential, change this to a Sequence.Multiply.</span>
+        <span class="n">Sequence</span><span class="o">.</span><span class="n">SerialMultiply</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;mult&quot;</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">xin</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">coeff</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">mult</span><span class="p">),</span>
+
+        <span class="c"># Create an accumulating sequence by adding the output of the</span>
+        <span class="c"># multipler with the output register.</span>
+        <span class="n">Sequence</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;accum&quot;</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">mult</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">xout</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">xout</span><span class="p">,</span> <span class="n">clamp</span><span class="o">=</span><span class="bp">True</span><span class="p">),</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    
+<span class="c"># This Bin implements the higher level sequences of an FIR filter.</span>
+<span class="c"># The Repeat sequence is used to cycle through </span>
+<span class="n">fir</span> <span class="o">=</span> <span class="n">Bin</span><span class="o">.</span><span class="n">Bin</span><span class="p">(</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;fir&quot;</span><span class="p">,</span>
+    <span class="n">children</span> <span class="o">=</span> <span class="p">[</span><span class="n">fir_base</span><span class="p">],</span>
+    <span class="n">seqs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="c"># The complete filter is implemented as a Serial sequence that</span>
+        <span class="c"># has some embeded sequences to Repeat the multipy/accumulate</span>
+        <span class="c"># 16 times.</span>
+        <span class="n">Sequence</span><span class="o">.</span><span class="n">Serial</span><span class="p">(</span>
+            <span class="p">[</span><span class="s">&quot;reset&quot;</span><span class="p">,</span> 
+             <span class="n">Sequence</span><span class="o">.</span><span class="n">Repeat</span><span class="p">(</span><span class="n">count</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>  <span class="c"># number of taps in the FIR filter</span>
+                             <span class="n">counter</span><span class="o">=</span><span class="n">seq</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;addr&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">5</span><span class="p">),</span>
+                             <span class="n">subseq</span><span class="o">=</span><span class="n">Sequence</span><span class="o">.</span><span class="n">Serial</span><span class="p">([</span><span class="s">&quot;mult&quot;</span><span class="p">,</span> <span class="s">&quot;accum&quot;</span><span class="p">])),</span>
+             <span class="p">],</span>
+            <span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+<span class="n">fir</span><span class="o">.</span><span class="n">vlog_dump</span><span class="p">(</span><span class="n">recurse</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</pre></div>
+</td></tr></table></div>
+<p>Here you can see an example of this FIR filter in action when
+simulated with tap coefficients that are uniform (implements
+a moving average) and random input samples.</p>
+<img alt="_images/fir_example.png" src="_images/fir_example.png" />
+<div class="section" id="registers">
+<h2>Registers<a class="headerlink" href="#registers" title="Permalink to this headline">¶</a></h2>
+<p>The member registers of a <tt class="docutils literal"><span class="pre">Bin</span></tt> are specified using the <tt class="docutils literal"><span class="pre">regs</span></tt>
+keyword as shown on Line 14. In the FIR example, there are two
+registers that the <tt class="docutils literal"><span class="pre">fir_base</span></tt> Bin controls.  These registers are
+exported as outputs of the module. The <tt class="docutils literal"><span class="pre">mult</span></tt> and <tt class="docutils literal"><span class="pre">xout</span></tt> registers
+get specified on lines 7 and 8 as signed 16 bit and 20 bit signals,
+respectively. The <tt class="docutils literal"><span class="pre">mult</span></tt> register is controlled by the
+SerialMultiply Sequence specified as a member sequence on line 23.</p>
+</div>
+<div class="section" id="top-level">
+<h2>Top Level<a class="headerlink" href="#top-level" title="Permalink to this headline">¶</a></h2>
+<p>To use this FIR implementation requires writing some custom verilog
+to hook up the buffers for the tap coefficients and the input samples
+and to interface to those buffers based on the address being exported
+by the generated code. Following the verilog that does this.</p>
+<div class="highlight-python"><pre>module fir_top
+  #(parameter DATA_WIDTH=8
+    )
+  (input clk,
+   input reset_n,
+   input [DATA_WIDTH-1:0] xin,
+   input we,
+
+   output running,
+   output done,
+   output [DATA_WIDTH-1:0] xout
+   );
+
+   localparam COEFF_WIDTH=8; // width of FIR tap coefficents. also set in the seq script
+   localparam N = 5'd16; // number of taps in FIR filter, also set in the seq script
+   localparam N_WIDTH = 5; // CEIL(LOG2(N)), also set in the seq script
+   localparam FIR_OUT_WIDTH=20; // if you change this you also need to change the seq script
+   
+   // create buffers for input stream and coefficients
+   reg [COEFF_WIDTH-1:0]   fir_coeffs[0:N-1];
+   reg [DATA_WIDTH-1:0]    xin_buf[0:N-1];
+
+   wire [FIR_OUT_WIDTH-1:0] xout_raw;
+   wire 		    running_pre;
+   assign running = running_pre | we_s;
+   reg 			    we_s;
+
+   wire [N_WIDTH-1:0] fir_addr;
+   reg [N_WIDTH-1:0]  waddr;
+   wire [N_WIDTH:0]   raddr = waddr + fir_addr;
+   wire [N_WIDTH-1:0] xin_buf_addr = (we) ? waddr : (raddr &gt;= N) ? raddr - N : raddr; // when writing, set the ram address to waddr, when reading, we need to make the read address a circular buffer, so we need to wrap the read addr modulo N
+   reg [COEFF_WIDTH-1:0] 	    coeff;
+   reg [DATA_WIDTH-1:0] 	    xin1;
+   
+   integer j;
+   always @(posedge clk or negedge reset_n) begin
+      if(!reset_n) begin
+	 we_s &lt;= 0;
+	 coeff &lt;= 0;
+	 waddr &lt;= 0;
+	 xin1  &lt;= 0;
+	 for(j=0;j&lt;N;j=j+1) begin
+	    fir_coeffs[j] = 8;
+	    xin_buf[j] = 0;
+	 end
+      end else begin
+	 we_s &lt;= we;
+	 if(we) begin
+	    xin_buf[xin_buf_addr] &lt;= xin;
+	 end else if(done) begin
+	    if(waddr == N-1) begin
+	       waddr &lt;= 0;
+	    end else begin
+	       waddr &lt;= waddr + 1;
+	    end
+	 end else begin
+	    xin1 &lt;= xin_buf[xin_buf_addr];
+	 end
+	 coeff &lt;= fir_coeffs[fir_addr];
+      end
+   end
+   
+   fir fir
+     (.clk				(clk),
+      .reset_n				(reset_n),
+      .coeff				(coeff),
+      .xin				(xin1),
+      .seq				(1'b0),
+      .start				(we_s),
+      .addr				(fir_addr),
+      .xout				(xout_raw),
+      .mult				(),
+      .running				(running_pre),
+      .done				(done)
+      );
+
+   localparam EXTRA_BITS = FIR_OUT_WIDTH - DATA_WIDTH - COEFF_WIDTH + 1;
+   
+   assign xout = xout_raw[FIR_OUT_WIDTH-EXTRA_BITS-1:FIR_OUT_WIDTH-EXTRA_BITS-DATA_WIDTH];
+   
+endmodule
+   
+   
+   </pre>
+</div>
+<p>For this implementation, the input stream must be much slower than the
+clock rate to give time to serially multiply and accumulate the 16
+taps for each sample.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <h3><a href="index.html">Table Of Contents</a></h3>
+            <ul>
+<li><a class="reference external" href="#">FIR Filter Example</a><ul>
+<li><a class="reference external" href="#registers">Registers</a></li>
+<li><a class="reference external" href="#top-level">Top Level</a></li>
+</ul>
+</li>
+</ul>
+
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="example1.html"
+                                  title="previous chapter">Simple Example</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="seq.html"
+                                  title="next chapter">seq</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="_sources/fir_example.txt"
+                     rel="nofollow">Show Source</a></li>
+            </ul>
+          <div id="searchbox" style="display: none">
+            <h3>Quick search</h3>
+              <form class="search" action="search.html" method="get">
+                <input type="text" name="q" size="18" />
+                <input type="submit" value="Go" />
+                <input type="hidden" name="check_keywords" value="yes" />
+                <input type="hidden" name="area" value="default" />
+              </form>
+              <p class="searchtip" style="font-size: 90%">
+              Enter search terms or a module, class or function name.
+              </p>
+          </div>
+          <script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="seq.html" title="seq"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="example1.html" title="Simple Example"
+             >previous</a> |</li>
+        <li><a href="index.html">seq v1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2010, Lane Brooks.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.6.
+    </div>
+  </body>
+</html>

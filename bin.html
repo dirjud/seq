@@ -1,0 +1,225 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>seq.Bin &mdash; seq v1 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="seq v1 documentation" href="index.html" />
+    <link rel="next" title="Writing a New Sequence" href="sequence_creation.html" />
+    <link rel="prev" title="seq.Sequence" href="sequence.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="sequence_creation.html" title="Writing a New Sequence"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="sequence.html" title="seq.Sequence"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">seq v1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-seq.Bin">
+<h1>seq.Bin<a class="headerlink" href="#module-seq.Bin" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="seq.Bin.Bin">
+<em class="property">class </em><tt class="descclassname">seq.Bin.</tt><tt class="descname">Bin</tt><big>(</big><em>name</em>, <em>seqs</em>, <em>regs=</em><span class="optional">[</span><span class="optional">]</span>, <em>children=</em><span class="optional">[</span><span class="optional">]</span>, <em>register_done=True</em>, <em>reset_n='reset_n'</em><big>)</big><a class="headerlink" href="#seq.Bin.Bin" title="Permalink to this definition">¶</a></dt>
+<dd><p>A &#8216;Bin&#8217; reprasents a state machine that serially executes
+&#8216;Sequences&#8217;.  The state machine that can be generated from this class
+from a &#8216;Writer&#8217; generates HDL with a bin interface.  This interface
+has two inputs that are HDL signals called &#8216;start&#8217; and &#8216;seq&#8217;.  The
+user sets the &#8216;seq&#8217; input to the desired sequence number and then pulses
+the &#8216;start&#8217; signal.  After receiving the &#8216;start&#8217; signal, the bin
+will assert its &#8216;running&#8217; output to high and will hold it high until
+the sequence has been executed to completion.  Upon completion, the
+bin will also issue a one-shot &#8216;done&#8217; pulse.  The user must
+hold the &#8216;seq&#8217; input constant while the sequener is &#8216;running&#8217;.  If
+the user issues a &#8216;start&#8217; again while the bin is &#8216;running&#8217;, it
+immediately terminates the running sequence and starts the sequence
+specified by the input &#8216;seq&#8217;.</p>
+<p>&#8216;done&#8217; and &#8216;running&#8217; may not be registered to provide the quickest
+possible turnaround time.  The user should register these as
+necessary.  The &#8216;done&#8217; signal can be registered and sent back in if
+the user want to run sequences back to back.  This means there is at
+least one cycle &#8216;wasted&#8217; time required to change when
+starting/completing sequences.  You can implement custom Sequences,
+however, to get around this in a critical section.</p>
+<p>Bins execute a series of &#8216;Sequences&#8217;.  Sequences must implement
+the Sequence interface and can be things like ChildSequence, ...</p>
+<dl class="method">
+<dt id="seq.Bin.Bin.gen_param_mapping">
+<tt class="descname">gen_param_mapping</tt><big>(</big><em>outdir=''</em>, <em>recurse=False</em><big>)</big><a class="headerlink" href="#seq.Bin.Bin.gen_param_mapping" title="Permalink to this definition">¶</a></dt>
+<dd>Dumps a parameter mapping file useful for debugging in a
+wave viewer like simvision or gtkwaves</dd></dl>
+
+<dl class="method">
+<dt id="seq.Bin.Bin.link">
+<tt class="descname">link</tt><big>(</big><em>parent</em>, <em>seqs</em><big>)</big><a class="headerlink" href="#seq.Bin.Bin.link" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>allseqs</em> &#8211; A dict keyed on Sequence names.  This module will</td>
+</tr>
+</tbody>
+</table>
+<p>register himself in the allseqs dict and then register call this
+method on his sub-Sequences.
+:param child_seqs:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seq.Bin.Bin.vlog_dump">
+<tt class="descname">vlog_dump</tt><big>(</big><em>outdir=''</em>, <em>filename=None</em>, <em>recurse=False</em><big>)</big><a class="headerlink" href="#seq.Bin.Bin.vlog_dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a verilog implementation of this Bin.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>outdir</em> &#8211; path to dump file in. Should include trailing path deliminter.</li>
+<li><em>filename</em> &#8211; If None, then the file will be called &#8216;name&#8217;.v, where name is the name provided when you created this function.  Otherwise, the filename will be that specified by this parameter.</li>
+<li><em>recurse</em> &#8211; If True, then recursively dump verilog for all children.  filename cannot be specified for children when using this method</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt>Example:</dt>
+<dd><a href="#id1"><span class="problematic" id="id2">seq_</span></a>.vlog_dump(&#8220;rtl_auto/&#8221;)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="seq.Bin.Bin.vlog_gen_instance">
+<tt class="descname">vlog_gen_instance</tt><big>(</big><em>outdir=''</em>, <em>wires_filename=None</em>, <em>inst_filename=None</em><big>)</big><a class="headerlink" href="#seq.Bin.Bin.vlog_gen_instance" title="Permalink to this definition">¶</a></dt>
+<dd>Creates a verilog file instancing self (useful only for the top
+level)</dd></dl>
+
+<dl class="method">
+<dt id="seq.Bin.Bin.vlog_gen_seq_params">
+<tt class="descname">vlog_gen_seq_params</tt><big>(</big><em>prefix='seq'</em><big>)</big><a class="headerlink" href="#seq.Bin.Bin.vlog_gen_seq_params" title="Permalink to this definition">¶</a></dt>
+<dd>Prints up a unique parameter and name associated with each
+of the possible states in this module.  The prefix parameter gets
+appended to the front of each parameter name.</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="seq.Bin.Len1Bin">
+<em class="property">class </em><tt class="descclassname">seq.Bin.</tt><tt class="descname">Len1Bin</tt><big>(</big><em>name</em>, <em>seqs</em>, <em>regs=</em><span class="optional">[</span><span class="optional">]</span>, <em>children=</em><span class="optional">[</span><span class="optional">]</span>, <em>register_done=True</em>, <em>reset_n='reset_n'</em><big>)</big><a class="headerlink" href="#seq.Bin.Len1Bin" title="Permalink to this definition">¶</a></dt>
+<dd><p>A &#8216;Len1Bin&#8217; extends Bin but must only be used with
+Sequences that are guarenteed to only take a single clock cycle to
+complete.  Because a Len1Bin assumes each of its Sequences will
+complete in a single clock cycle, can export its done and running
+signal without any logical dependance on its member Sequences, thus
+realizing hardware savings.  So this Bin realizes logic savings
+can produce a registered done output in a single clock cycle, which is
+not possible with the more general Bin.  Therefore, with this
+bin, the &#8216;registered_done&#8217; condition is realized in a single
+clock cycle regardless.</p>
+<p>The onerous is upon the user to ensure the member Sequences assign to
+this bin are of length 1.  Unknown and unpredictable results
+will occur if that is not the case.</p>
+<p>Debugging hint: One way to check that all the member Sequences are
+indeed length 1 sequences is to compare the &#8216;done&#8217; output signal with
+the &#8216;<a href="#id3"><span class="problematic" id="id4">done_</span></a>&#8216; internal signal.  The internal &#8216;<a href="#id5"><span class="problematic" id="id6">done_</span></a>&#8216; signal is still
+generated based on the done condition of the member Sequences, but it
+is ignored by this Bin and assumed to occur immediately.
+Therefore, this Sequncer generates its output done condition by simply
+sampling the start input.  If the internal &#8216;<a href="#id7"><span class="problematic" id="id8">done_</span></a>&#8216; signal, however is
+not following the output &#8216;done&#8217; signal, then it means this assumption
+is not valid and you are going to get unknown results.  Some Sequences
+may behave just fine if they cut short while others may not.</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="sequence.html"
+                                  title="previous chapter">seq.Sequence</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="sequence_creation.html"
+                                  title="next chapter">Writing a New Sequence</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="_sources/bin.txt"
+                     rel="nofollow">Show Source</a></li>
+            </ul>
+          <div id="searchbox" style="display: none">
+            <h3>Quick search</h3>
+              <form class="search" action="search.html" method="get">
+                <input type="text" name="q" size="18" />
+                <input type="submit" value="Go" />
+                <input type="hidden" name="check_keywords" value="yes" />
+                <input type="hidden" name="area" value="default" />
+              </form>
+              <p class="searchtip" style="font-size: 90%">
+              Enter search terms or a module, class or function name.
+              </p>
+          </div>
+          <script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="sequence_creation.html" title="Writing a New Sequence"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="sequence.html" title="seq.Sequence"
+             >previous</a> |</li>
+        <li><a href="index.html">seq v1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2010, Lane Brooks.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.6.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,536 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>seq.Sequence &mdash; seq v1 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="seq v1 documentation" href="index.html" />
+    <link rel="next" title="seq.Bin" href="bin.html" />
+    <link rel="prev" title="seq" href="seq.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="bin.html" title="seq.Bin"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="seq.html" title="seq"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">seq v1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-seq.Sequence">
+<h1>seq.Sequence<a class="headerlink" href="#module-seq.Sequence" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="seq.Sequence.Add">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">Add</tt><big>(</big><em>a</em>, <em>b</em>, <em>out</em>, <em>clamp=False</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.Add" title="Permalink to this definition">¶</a></dt>
+<dd><p>This sequence will add two signals together. If the &#8216;out&#8217; signal is
+not sufficiently wide to store the output, then you can specify a the
+&#8216;clamp&#8217; option to prevent overflow. If the output is signed, then 2&#8217;s
+compliment clamping is used to clamp most negative and most positive,
+otherwise just most positive is clamped.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>a</em> &#8211; Signal or int that is the first input to be added</li>
+<li><em>b</em> &#8211; Signal or int that is the second input to be added</li>
+<li><em>out</em> &#8211; reg (signal or string) to save the result in.</li>
+<li><em>clamp</em> &#8211; should the output be clamped if overflow is possible.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Example:</p>
+<blockquote>
+<p>a1 = seq.Signal(&#8220;a1&#8221;, width=4)
+b1 = seq.Signal(&#8220;b1&#8221;, width=4)
+out1 = seq.Signal(&#8220;out1&#8221;, width=5, signed=False)
+a2 = seq.Signal(&#8220;a2&#8221;, width=4, signed=True)
+b2 = seq.Signal(&#8220;b2&#8221;, width=4, signed=True)
+out2 = seq.Signal(&#8220;out2&#8221;, width=5, signed=True)</p>
+<p>out3 = seq.Signal(&#8220;out3&#8221;, width=4, signed=False)
+out4 = seq.Signal(&#8220;out4&#8221;, width=4, signed=False)
+out5 = seq.Signal(&#8220;out5&#8221;, width=3, signed=True)
+out6 = seq.Signal(&#8220;out6&#8221;, width=4, signed=True)
+out7 = seq.Signal(&#8220;out7&#8221;, width=20, signed=True)</p>
+<dl class="docutils">
+<dt>test1 = Bin.Bin(</dt>
+<dd><p class="first">name = &#8220;test1&#8221;,
+regs = [ out1, out2, out3, out4, out5, out6, out7 ],
+seqs = [</p>
+<blockquote>
+Sequence.Add(a=a1, b=b1, out=&#8221;out1&#8221;),
+Sequence.Add(a=a2, b=b2, out=&#8221;out2&#8221;),
+Sequence.Add(a=a1, b=b1, out=&#8221;out3&#8221;),
+Sequence.Add(a=a1, b=b1, out=&#8221;out4&#8221;, clamp=True),
+Sequence.Add(a=a2, b=b2, out=out5,   clamp=True),
+Sequence.Add(a=a2, b=b2, out=out6,   clamp=True),
+Sequence.Add(a=a2, b=b2, out=out7,   clamp=True),
+]</blockquote>
+<p class="last">)</p>
+</dd>
+</dl>
+<p>test1.vlog_dump()</p>
+</blockquote>
+</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.Child">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">Child</tt><big>(</big><em>sequence</em>, <em>set={}</em>, <em>detach=False</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.Child" title="Permalink to this definition">¶</a></dt>
+<dd><p>A Child Sequence is used to start a Sequence in a child
+Bin.  There are two variants availalbe.  When child_sequence is
+a Signal, then the child Sequence to be executed is specified as an
+input parameter.  When the child_sequence is a Sequence or a string,
+then that sequence is executed.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>set</em> &#8211; You can pass in a dictionary of registers to set.  This</td>
+</tr>
+</tbody>
+</table>
+<p>can be used, for example, with a child Select sequence to control
+which sequence executes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>detach</em> &#8211; When this is True, the child sequence will always run</td>
+</tr>
+</tbody>
+</table>
+<p>detached.  This means that this Sequence will start the child and
+immediately report done and not wait for the child to finish.  When
+this is False, this sequence will wait until the child is done to
+report done.  When this is a seq.Signal of width 1, then the signal
+will be used to determine whether this sequence detaches.  If you run
+detached, you can use the &#8216;running&#8217; and &#8216;done&#8217; signals to sync to
+using a Sequence.Sync.  You must be careful when running in detached
+mode because other start calls into the child bin will stop and cancel
+the detached sequence causing its running flag with no done signal
+being emitted.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.CountDown">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">CountDown</tt><big>(</big><em>reg</em>, <em>stop</em>, <em>skip</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.CountDown" title="Permalink to this definition">¶</a></dt>
+<dd>Takes &#8216;sig&#8217; and counts it down until the &#8216;stop&#8217; param has been
+reached.  The decrement value is &#8216;skip&#8217;.  Overflow is watched and
+accounted for, so it is safe to set the stop param to zero.</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.CountUp">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">CountUp</tt><big>(</big><em>reg</em>, <em>stop</em>, <em>skip</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.CountUp" title="Permalink to this definition">¶</a></dt>
+<dd>Takes &#8216;sig&#8217; and counts it down until the &#8216;stop&#8217; param has been
+reached.  The increment value is &#8216;skip&#8217;.  Overflow is watched and
+accounted for, so it is safe to set the stop param to max value.</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.Nop">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">Nop</tt><big>(</big><em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.Nop" title="Permalink to this definition">¶</a></dt>
+<dd>Runs a one cycle sequence that does nothing.  This can be useful,
+for example, within a Select sequence when you want to Select
+between running a Sequence or doing nothing.</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.Parallel">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">Parallel</tt><big>(</big><em>subseqs</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.Parallel" title="Permalink to this definition">¶</a></dt>
+<dd>Runs Sequences in list &#8216;subseqs&#8217; in parallel</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.Repeat">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">Repeat</tt><big>(</big><em>subseq</em>, <em>count</em>, <em>counter=None</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.Repeat" title="Permalink to this definition">¶</a></dt>
+<dd>A Sequence that runs the specified sequence a specified number of times</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.Reset">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">Reset</tt><big>(</big><em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.Reset" title="Permalink to this definition">¶</a></dt>
+<dd>This Sequence extends the Set sequence.  It takes in no arguments
+and sets all the registers of the Bin to their init values.</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.Sequence">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">Sequence</tt><big>(</big><em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.Sequence" title="Permalink to this definition">¶</a></dt>
+<dd><p>A Sequence is an abstract class that provides a common interface
+for a Bin to use to generate HDL that reprasents the desired
+sequence functionality.  You should never instance this class directly
+but should use one of the many derived classes available.</p>
+<dl class="method">
+<dt id="seq.Sequence.Sequence.find_reg">
+<tt class="descname">find_reg</tt><big>(</big><em>reg</em><big>)</big><a class="headerlink" href="#seq.Sequence.Sequence.find_reg" title="Permalink to this definition">¶</a></dt>
+<dd>This will lookup the reg and return the Signal reference to it.
+:param reg: str</dd></dl>
+
+<dl class="method">
+<dt id="seq.Sequence.Sequence.link">
+<tt class="descname">link</tt><big>(</big><em>bin</em>, <em>parent</em>, <em>data</em><big>)</big><a class="headerlink" href="#seq.Sequence.Sequence.link" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>data</em> &#8211; A dict keyed on type(self) that each Sequence can</td>
+</tr>
+</tbody>
+</table>
+<p>use to register data it can use when generated logic that is shared
+between all Sequences of the same type</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seq.Sequence.Sequence.register_unique_names">
+<tt class="descname">register_unique_names</tt><big>(</big><em>names</em><big>)</big><a class="headerlink" href="#seq.Sequence.Sequence.register_unique_names" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>names</em> &#8211; A dict keyed on strings of unique names.  Subclasses of this module should set the self._unique_names list so this function can register them.  If a unique name is already registered, then this function will raise and Exception.  Recursively calls this method on Children as well</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="seq.Sequence.Sequence.use_reg">
+<tt class="descname">use_reg</tt><big>(</big><em>reg</em><big>)</big><a class="headerlink" href="#seq.Sequence.Sequence.use_reg" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Like find_reg() but will also remove the reg from the output port list because</dt>
+<dd>it is an internal register only.</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>reg</em> &#8211; str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.Serial">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">Serial</tt><big>(</big><em>subseqs</em>, <em>set={}</em>, <em>term=None</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.Serial" title="Permalink to this definition">¶</a></dt>
+<dd>Runs provided Sequences in list &#8216;subseqs&#8217; in series.  Sets via the &#8216;set&#8217; dict</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.SerialMultiply">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">SerialMultiply</tt><big>(</big><em>a</em>, <em>b</em>, <em>out</em>, <em>justify='left'</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.SerialMultiply" title="Permalink to this definition">¶</a></dt>
+<dd><p>The SerialMultiply sequence will multiply two signals together using an
+adder/shifter in the same way people do long multiplication by hand. 
+Signal &#8216;a&#8217; is multiplied with signal &#8216;b&#8217;. It will take as many clock
+cycles as the width of the signal &#8216;b&#8217;, so if &#8216;a&#8217; and &#8216;b&#8217; are not the same
+width, select &#8216;b&#8217; as the narrower. The &#8216;out&#8217; register is the correct
+results when done but takes on the intermediate values while &#8216;running&#8217;
+is high. Typically, the width of &#8216;out&#8217; should equal the width of &#8216;a&#8217;
+plus the width of &#8216;b&#8217; to capture all possible output results (when 
+&#8216;a&#8217; and &#8216;b&#8217; are unsigned). An optional argument &#8216;justify&#8217; can be used
+when the output is not wide enough and truncation needs to occur. If
+&#8216;justify&#8217; is &#8220;left&#8221;, then the output is left justified and LSB&#8217;s are
+dropped. If &#8216;justify is &#8216;right&#8217;, then MSB&#8217;s are dropped (although this
+is currently not implemented). Currently &#8216;out&#8217; cannot be wider than
+the width of &#8216;a&#8217; plus the width of &#8216;b&#8217;.</p>
+<p>This class implementst the differences in multiplication between
+signed versus unsigned integers, however, the three arguments must all
+be the same (meaning &#8216;a&#8217;, &#8216;b&#8217;, and &#8216;out&#8217; must match in terms of sign).
+It is turn that signed multiplication results in an output of width
+that is one less than unsigned multiplication, but that optimization
+is not currently implemented.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>a</em> &#8211; Signal or int that is the first input to be multiplied.</li>
+<li><em>b</em> &#8211; Signal or int that is the second input to be multiplied.</li>
+<li><em>out</em> &#8211; reg (signal or string) to save the result in.</li>
+<li><em>justify</em> &#8211; str that is either &#8220;left&#8221; or &#8220;right&#8221;</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Unsigned Example:</p>
+<blockquote>
+<p>a1 = seq.Signal(&#8220;a1&#8221;, width=4)
+b1 = seq.Signal(&#8220;b1&#8221;, width=4)
+out1 = seq.Signal(&#8220;out1&#8221;, width=8)
+test1 = Bin.Bin(</p>
+<blockquote>
+name = &#8220;test1&#8221;,
+regs = [ out1, ],
+seqs = [ Sequence.SerialMultiply(a=a1, b=b1, out=&#8221;out1&#8221;), ]
+)</blockquote>
+<p>test1.vlog_dump()</p>
+</blockquote>
+<p>Signed Example:</p>
+<blockquote>
+<p>out2 = seq.Signal(&#8220;out2&#8221;, width=8, signed=True)
+test2 = Bin.Bin(</p>
+<blockquote>
+<p>name = &#8220;test2&#8221;,
+regs = [ out2, ],
+seqs = [</p>
+<blockquote>
+<dl class="docutils">
+<dt>Sequence.SerialMultiply(a=seq.Signal(&#8220;a2&#8221;, width=4, signed=True),</dt>
+<dd><blockquote class="first">
+b=seq.Signal(&#8220;b2&#8221;, width=4, signed=True), 
+out=out2),</blockquote>
+<p class="last">]</p>
+</dd>
+</dl>
+</blockquote>
+<p>)</p>
+</blockquote>
+<p>test2.vlog_dump()</p>
+</blockquote>
+</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.Set">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">Set</tt><big>(</big><em>set</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.Set" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Set sequence is used to set register to either a static int
+value or to a Signal passed in from a higher level (such as an I2C
+register, for example).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>set</em> &#8211; A dict keyed off the register name.  The value is int or Signal</td>
+</tr>
+</tbody>
+</table>
+<p>that the register will be set to.</p>
+<p>Suppose your Bin has a registers named &#8216;X&#8217;, &#8216;Y&#8217;, and &#8216;Z&#8217;, then you can
+set them as follows:</p>
+<blockquote>
+Set(name=&#8221;xyz&#8221;, set=dict(X=1, Y=10, Z=&#8221;4&#8217;b1010&#8221;))</blockquote>
+<dl class="docutils">
+<dt>You can also set them to Signals.  For example:</dt>
+<dd>zsig = seq.Signal(name=&#8221;zsig&#8221;, width=4, init=None)
+Set(name=&#8221;z_on&#8221;, set=dict(Z=zsig))</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.Stall">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">Stall</tt><big>(</big><em>count</em>, <em>set={}</em>, <em>set_at_end=False</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.Stall" title="Permalink to this definition">¶</a></dt>
+<dd><p>This stalls the current state until an internal counter reaches
+the provided stop_count signal value.  It uses a counter that is shared
+between all StallCount sequences.  The max_width static variable is
+used to figure out the biggest counter needed amongst all the
+instances of this class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>count</em> &#8211; A seq.Signal that tells this sequence how many
+clock cycles to stall for.  It can also be an integer if the stop
+count should be hard coded.  If it is a str, then the Signal will
+be looked up in the regs list of the parent bin.  The stall
+duration does not include the &#8216;start&#8217; one shot value.</li>
+<li><em>set</em> &#8211; A dict of signals and their value to be set for the
+duration of this stall state. See Set sequence for more
+information.</li>
+<li><em>set_at_end</em> &#8211; A bool that when True specifies that set should occur
+at the end of the stall period.  Otherwise it occurs at the beginning.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.Sync">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">Sync</tt><big>(</big><em>sync</em>, <em>active_high=True</em>, <em>set={}</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.Sync" title="Permalink to this definition">¶</a></dt>
+<dd><p>This Bin will wait until all bits in the sync signal are
+active.  You specify whether sync is active high or low.  This
+overrides Set, you can use the <a href="#id1"><span class="problematic" id="id2">**</span></a>kw to set registers at the start of
+this Sequence</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>sync</em> &#8211; A seq.Signal on which this Sequence waits.  If it is a
+str, then the Signal will be looked up in the regs list of the
+parent bin.</li>
+<li><em>active_high</em> &#8211; If True, then this Sequence waits until all bits in</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>sync are high.  Otherwise waits until they are all low.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>set</em> &#8211; A dict of signals and their value to be set for the
+duration of this stall state. See Set sequence for more
+information.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.Toggle">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">Toggle</tt><big>(</big><em>reg</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.Toggle" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>This Sequence toggles the provided reg by inverting all the bits</dt>
+<dd>of the reg.  The reg must be the in the reg list of the
+parent Bin control this sequence.</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>reg</em> &#8211; A seq.Signal or a string of the seq.Signal name
+in the regs list of the parent Bin.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="seq.Sequence.Trigger">
+<em class="property">class </em><tt class="descclassname">seq.Sequence.</tt><tt class="descname">Trigger</tt><big>(</big><em>reg</em>, <em>count=None</em>, <em>active_high=True</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#seq.Sequence.Trigger" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>This Sequence emits a programmable length pulse or trigger</dt>
+<dd><p class="first">signal.  &#8216;reg&#8217; must be the in the reg list of the parent
+Bin control this sequence.  The trigger is applied bit-wise,
+so if the reg is a bus, all bits get triggered.</p>
+<p class="last">If this sequence is interrupted in the middle of operation
+then the trigger may not complete leaving the reg toggled.</p>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>reg</em> &#8211; A seq.Signal or a string referencing the</td>
+</tr>
+</tbody>
+</table>
+<p>seq.Signal name in the regs list of the parent Bin.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>count</em> &#8211; A seq.Signal, int, string, or None indicating</td>
+</tr>
+</tbody>
+</table>
+<p>how long the trigger pulse should be.  When None, the trigger is a
+one-shot.  When an int, the trigger pulse is the specified number
+of cycles.  When a string in the register list, the trigger pulse duration
+specified by the value of the register.  When a seq.Signal, the pulse
+duration is value of the Signal.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>active_high</em> &#8211; A bool indicating whether this trigger is active high pulse or</td>
+</tr>
+</tbody>
+</table>
+<p>active low.</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="seq.html"
+                                  title="previous chapter">seq</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="bin.html"
+                                  title="next chapter">seq.Bin</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="_sources/sequence.txt"
+                     rel="nofollow">Show Source</a></li>
+            </ul>
+          <div id="searchbox" style="display: none">
+            <h3>Quick search</h3>
+              <form class="search" action="search.html" method="get">
+                <input type="text" name="q" size="18" />
+                <input type="submit" value="Go" />
+                <input type="hidden" name="check_keywords" value="yes" />
+                <input type="hidden" name="area" value="default" />
+              </form>
+              <p class="searchtip" style="font-size: 90%">
+              Enter search terms or a module, class or function name.
+              </p>
+          </div>
+          <script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="bin.html" title="seq.Bin"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="seq.html" title="seq"
+             >previous</a> |</li>
+        <li><a href="index.html">seq v1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2010, Lane Brooks.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.6.
+    </div>
+  </body>
+</html>

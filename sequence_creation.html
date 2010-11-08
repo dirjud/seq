@@ -1,0 +1,182 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Writing a New Sequence &mdash; seq v1 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="seq v1 documentation" href="index.html" />
+    <link rel="prev" title="seq.Bin" href="bin.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="bin.html" title="seq.Bin"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">seq v1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="writing-a-new-sequence">
+<h1>Writing a New Sequence<a class="headerlink" href="#writing-a-new-sequence" title="Permalink to this headline">¶</a></h1>
+<p>This section is a guide on how to write a new Sequence.</p>
+<p>To write a new Sequence, you must extend seq.Sequence.Sequence or one
+of its derived classes. If you only want to modify the behavior of an
+existing Sequence, then you may just need to extend that Sequence and
+override the appropriate functions.</p>
+<p>By extending Sequence you only have to fill in a few methods that
+implement the verilog generation. The verilog generation is broken
+up into the following methods:</p>
+<dl class="docutils">
+<dt>__init__(self, ..., <a href="#id1"><span class="problematic" id="id2">**</span></a>kw)</dt>
+<dd>For the __init__() method you can specify any custom arguments that
+your Sequence will need, but you will also need to add the <a href="#id3"><span class="problematic" id="id4">**</span></a>kw
+argument to pass to the base Sequence class.</dd>
+<dt>link(self, sequencer, parent, data)</dt>
+<dd>Testing</dd>
+<dt>_vlog_gen_declare(self)</dt>
+<dd>Testing</dd>
+<dt>_vlog_gen_logic(self)</dt>
+<dd>Testing</dd>
+<dt>_vlog_gen_reset(self)</dt>
+<dd>Testing</dd>
+<dt>_vlog_gen_seq(self)</dt>
+<dd>Testing</dd>
+<dt>_vlog_gen_start_wire(self, start)</dt>
+<dd>Testing</dd>
+<dt>_vlog_gen_inactive(self)</dt>
+<dd>Testing</dd>
+<dt>_vlog_gen_running(self)</dt>
+<dd>Testing</dd>
+</dl>
+<div class="section" id="example-of-set-sequence">
+<h2>Example of Set Sequence<a class="headerlink" href="#example-of-set-sequence" title="Permalink to this headline">¶</a></h2>
+<p>Here is an example of the Set Sequence. The Set Sequence
+simply sets the provides dictionary of registers to the
+supplied value and returns immediately.  The implementation
+is as follows:</p>
+<div class="highlight-python"><pre>class Set(Sequence):
+    def __init__(self, set, **kw):
+        self._set = set
+        if not(type(set) is dict):
+            raise Exception("'set' argument must be a dict")
+        Sequence.__init__(self, **kw)
+
+    def link(self, sequencer, parent, data):
+        Sequence.link(self, sequencer, parent, data)
+        self.mapping = {}
+        self.inputs = {}
+        for k,v in self._set.items():
+            if not(self.sequencer.regs.has_key(k)):
+                raise Exception("Parent does not have a register called %s in Sequence %s %s" % (k, self.name, self))
+
+            if type(v) is seq.Signal:
+                val = v.name
+                self.sequencer.register_port(seq.Port(v, "input"))
+            else:
+                val = v
+            self.mapping[k] = str(val)
+
+    def _vlog_gen_seq(self, set_at_end=False):
+        s = [ "if(%s) begin" % (self.start, )", ]
+        for sig, val in self.mapping.iteritems():
+            s.append("  %s &lt;= %s;" % (sig, val))
+        s.append("end")
+        return s
+
+    def _vlog_gen_running(self):
+        return [ "%s &lt;= %s;" % (self.running, self.start,) ]
+
+    def _vlog_gen_done(self):
+        return self.running</pre>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <h3><a href="index.html">Table Of Contents</a></h3>
+            <ul>
+<li><a class="reference external" href="#">Writing a New Sequence</a><ul>
+<li><a class="reference external" href="#example-of-set-sequence">Example of Set Sequence</a></li>
+</ul>
+</li>
+</ul>
+
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="bin.html"
+                                  title="previous chapter">seq.Bin</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="_sources/sequence_creation.txt"
+                     rel="nofollow">Show Source</a></li>
+            </ul>
+          <div id="searchbox" style="display: none">
+            <h3>Quick search</h3>
+              <form class="search" action="search.html" method="get">
+                <input type="text" name="q" size="18" />
+                <input type="submit" value="Go" />
+                <input type="hidden" name="check_keywords" value="yes" />
+                <input type="hidden" name="area" value="default" />
+              </form>
+              <p class="searchtip" style="font-size: 90%">
+              Enter search terms or a module, class or function name.
+              </p>
+          </div>
+          <script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="bin.html" title="seq.Bin"
+             >previous</a> |</li>
+        <li><a href="index.html">seq v1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2010, Lane Brooks.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.6.
+    </div>
+  </body>
+</html>

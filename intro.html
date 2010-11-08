@@ -1,0 +1,210 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Introduction &mdash; seq v1 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="seq v1 documentation" href="index.html" />
+    <link rel="next" title="Simple Example" href="example1.html" />
+    <link rel="prev" title="seq : Hierarchical HDL Sequencer Generation" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="example1.html" title="Simple Example"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="seq : Hierarchical HDL Sequencer Generation"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">seq v1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
+<p><tt class="docutils literal"><span class="pre">seq</span></tt> is a tool set that makes designing sequences and state
+machines in HDL easier. You plug together smaller pieces to form a
+hierarchical specification of the your design and then run a script
+that generates the HDL for you. So the simple procedure is as follows</p>
+<ol class="arabic simple">
+<li>Specify your design in a text editor.</li>
+<li>Generate the HDL.</li>
+<li>Verify the design.</li>
+<li>Synthesize the design.</li>
+</ol>
+<p>The two basic abstractions that one must master to use <tt class="docutils literal"><span class="pre">seq</span></tt> are
+<tt class="docutils literal"><span class="pre">Sequences</span></tt> and <tt class="docutils literal"><span class="pre">Bins</span></tt>. With these two building blocks one can
+generate very complex logic designs easily via specification.</p>
+<div class="section" id="sequence">
+<h2>Sequence<a class="headerlink" href="#sequence" title="Permalink to this headline">¶</a></h2>
+<p>A <tt class="docutils literal"><span class="pre">Sequence</span></tt> is an object that performs operations. There are many
+different type of <tt class="docutils literal"><span class="pre">Sequences</span></tt> provided by this tool set that do
+operations like set registers, generate triggers, stall for a
+specified number of clock cycles, or sync to an external
+signals. Users can also write their own as necessary.</p>
+<p><tt class="docutils literal"><span class="pre">Sequences</span></tt> have a very simple control interface that allows them to
+be plugged into each other in any way desired. The control inferface
+of a <tt class="docutils literal"><span class="pre">Sequence</span></tt> is shown below:</p>
+<img alt="_images/sequence.png" src="_images/sequence.png" />
+<p>The <tt class="docutils literal"><span class="pre">Sequence</span></tt> starts its operation when its receives a <tt class="docutils literal"><span class="pre">start</span></tt>
+one-shot pulse. After receiving the <tt class="docutils literal"><span class="pre">start</span></tt> signal, the <tt class="docutils literal"><span class="pre">Sequence</span></tt>
+will assert its <tt class="docutils literal"><span class="pre">running</span></tt> output high and will hold it high until
+the <tt class="docutils literal"><span class="pre">Sequence</span></tt> has executed to completion.  Upon completion, the
+sequencer will issue a one-shot <tt class="docutils literal"><span class="pre">done</span></tt> pulse and drop the
+<tt class="docutils literal"><span class="pre">running</span></tt> output. The timing is shown below:</p>
+<img alt="_images/sequence_timing.png" src="_images/sequence_timing.png" />
+<p>With this interface, <tt class="docutils literal"><span class="pre">Sequences</span></tt> can be connected to each other in
+many different forms to create new kinds of <tt class="docutils literal"><span class="pre">Sequences</span></tt>.  For
+example, the Serial <tt class="docutils literal"><span class="pre">Sequence</span></tt> encapsulates two or more
+<tt class="docutils literal"><span class="pre">Sequences</span></tt> and executes its subsequences serially as shown below:</p>
+<img alt="_images/serial_sequence.png" src="_images/serial_sequence.png" />
+<p>Parallel and multiplexing <tt class="docutils literal"><span class="pre">Sequences</span></tt> are built in a similar
+fashion.</p>
+</div>
+<div class="section" id="bin">
+<h2>Bin<a class="headerlink" href="#bin" title="Permalink to this headline">¶</a></h2>
+<p>A <tt class="docutils literal"><span class="pre">Bin</span></tt> corresponds to a HDL module and is characterized by
+the following:</p>
+<ol class="arabic simple">
+<li>A control/timing interface similar to a <tt class="docutils literal"><span class="pre">Sequence</span></tt></li>
+<li>An addressable collection of <tt class="docutils literal"><span class="pre">Sequences</span></tt></li>
+<li>A collection of registers that the member <tt class="docutils literal"><span class="pre">Sequences</span></tt> control.</li>
+<li>A optional collection of children <tt class="docutils literal"><span class="pre">Bins</span></tt> which the member <tt class="docutils literal"><span class="pre">Sequences</span></tt> control.</li>
+<li>A collection of user defined inputs and outputs.</li>
+</ol>
+<p>From the control and timing perspective, a <tt class="docutils literal"><span class="pre">Bin</span></tt> is much like a
+<tt class="docutils literal"><span class="pre">Sequence</span></tt>, but it also includes a <tt class="docutils literal"><span class="pre">seq</span></tt> input which controls
+which sequence in the bin gets executed. The inputs and outputs are
+user defined. The inputs typically control member <tt class="docutils literal"><span class="pre">Sequences</span></tt>, such
+the desired stall count for a Stall <tt class="docutils literal"><span class="pre">Sequence</span></tt> or an external
+synchronization signal for a Sync <tt class="docutils literal"><span class="pre">Sequence</span></tt>. The outputs are
+typically the member registers that the member <tt class="docutils literal"><span class="pre">Sequences</span></tt>
+control. For example, a <tt class="docutils literal"><span class="pre">Bin</span></tt> may have a output register called
+<tt class="docutils literal"><span class="pre">addr</span></tt> that a CountUp <tt class="docutils literal"><span class="pre">Sequence</span></tt> advances whenever it is executed.</p>
+<img alt="_images/bin.png" src="_images/bin.png" />
+<p>A more detailed look at a <tt class="docutils literal"><span class="pre">Bin</span></tt> is shown below. The collection of
+<tt class="docutils literal"><span class="pre">Sequences</span></tt> are addressable via the <tt class="docutils literal"><span class="pre">seq</span></tt> input. The <tt class="docutils literal"><span class="pre">start</span></tt>,
+<tt class="docutils literal"><span class="pre">running</span></tt>, and <tt class="docutils literal"><span class="pre">done</span></tt> control signals get
+demultiplexed/multiplexed onto the <tt class="docutils literal"><span class="pre">Sequence</span></tt> being selected.  The
+member <tt class="docutils literal"><span class="pre">Sequences</span></tt> then implement the logic necessary to control the
+collection of children <tt class="docutils literal"><span class="pre">Bins</span></tt> and the collection of member
+registers.</p>
+<img alt="_images/bin_exploded.png" src="_images/bin_exploded.png" />
+<p>An example timing for a <tt class="docutils literal"><span class="pre">Bin</span></tt> module is shown below:</p>
+<img alt="_images/bin_timing.png" src="_images/bin_timing.png" />
+<p>The user only has to interface to the top-most <tt class="docutils literal"><span class="pre">Bin</span></tt> in the
+hierarchy. To execute member <tt class="docutils literal"><span class="pre">Bins</span></tt> inside a <tt class="docutils literal"><span class="pre">Bin</span></tt>, the user
+instantations a Child <tt class="docutils literal"><span class="pre">Sequence</span></tt>. The Child <tt class="docutils literal"><span class="pre">Sequence</span></tt> can be
+static, meaning it always executes the <tt class="docutils literal"><span class="pre">Sequences</span></tt> of the child
+<tt class="docutils literal"><span class="pre">Bin</span></tt> in the a static order, or it can be parameterized, meaning the
+user can provide the order and number of sequences to execute.</p>
+<p>One will notice the slight difference in the timing of the <tt class="docutils literal"><span class="pre">done</span></tt>
+signal in the <tt class="docutils literal"><span class="pre">Sequence</span></tt> and <tt class="docutils literal"><span class="pre">Bin</span></tt> timing diagrams. The <tt class="docutils literal"><span class="pre">done</span></tt>
+signal out of a <tt class="docutils literal"><span class="pre">Bin</span></tt> is by default registered, which delays the
+<tt class="docutils literal"><span class="pre">done</span></tt> signal one clock cycle. The user can select an option
+that prevents the <tt class="docutils literal"><span class="pre">done</span></tt> from being registered when instantiating
+the <tt class="docutils literal"><span class="pre">Bin</span></tt>. If the <tt class="docutils literal"><span class="pre">done</span></tt> signal is registered, the user can
+hook the done signal directly up to the start signal to get a loop (you
+still need to logically or in an initial start pulse). When done
+is not registered, one can build up large combinational blocks, so
+for timing reasons, one may want to register the done signal. There
+is, of course, a latency build up that occurs for each level of the
+hierarchy that registers the done signal.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <h3><a href="index.html">Table Of Contents</a></h3>
+            <ul>
+<li><a class="reference external" href="#">Introduction</a><ul>
+<li><a class="reference external" href="#sequence">Sequence</a></li>
+<li><a class="reference external" href="#bin">Bin</a></li>
+</ul>
+</li>
+</ul>
+
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="index.html"
+                                  title="previous chapter">seq : Hierarchical HDL Sequencer Generation</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="example1.html"
+                                  title="next chapter">Simple Example</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="_sources/intro.txt"
+                     rel="nofollow">Show Source</a></li>
+            </ul>
+          <div id="searchbox" style="display: none">
+            <h3>Quick search</h3>
+              <form class="search" action="search.html" method="get">
+                <input type="text" name="q" size="18" />
+                <input type="submit" value="Go" />
+                <input type="hidden" name="check_keywords" value="yes" />
+                <input type="hidden" name="area" value="default" />
+              </form>
+              <p class="searchtip" style="font-size: 90%">
+              Enter search terms or a module, class or function name.
+              </p>
+          </div>
+          <script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="example1.html" title="Simple Example"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="seq : Hierarchical HDL Sequencer Generation"
+             >previous</a> |</li>
+        <li><a href="index.html">seq v1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2010, Lane Brooks.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.6.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,305 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Simple Example &mdash; seq v1 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="seq v1 documentation" href="index.html" />
+    <link rel="next" title="FIR Filter Example" href="fir_example.html" />
+    <link rel="prev" title="Introduction" href="intro.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="fir_example.html" title="FIR Filter Example"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="intro.html" title="Introduction"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">seq v1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="simple-example">
+<h1>Simple Example<a class="headerlink" href="#simple-example" title="Permalink to this headline">¶</a></h1>
+<p>Suppose you need a state machine that issues a one-shot trigger that
+is a delayed version of a received one-shot trigger. Under one
+scenario you want to wait a fixed 10 clock cycles before issuing the
+one-shot trigger and under the scenario you wait for an external
+synchronization signal to go high.</p>
+<p>If you were to write this as Verilog, it would look something like this:</p>
+<div class="highlight-c"><pre>module example1_manual
+  (
+   input clk,
+   input reset_n,
+   input ext_sync,     // external sync
+   input seq,          // controls which sequence is executed
+   input start,        // starts the sequence
+   output reg running, // indicates sequence is running
+   output reg done     // indicates sequence is done
+   );
+
+   reg [3:0] stall_count;
+   
+   always @(posedge clk or negedge reset_n) begin
+      if(!reset_n) begin
+	 running     &lt;= 0;
+	 done        &lt;= 0;
+	 stall_count &lt;= 0;
+      end else begin
+
+	 if(start) begin
+	    running &lt;= 1;
+	    done    &lt;= 0;
+	 end else if(done) begin
+	    done    &lt;= 0;
+	 end else if(running) begin
+	    case(seq)
+
+	      0: begin // in this state just stall 10 cycles
+		 stall_count &lt;= stall_count + 1;
+		 if(stall_count &gt;= 10) begin
+		    running &lt;= 0;
+		    done &lt;= 1;
+		 end 
+	      end
+	      
+	      1: begin // in that state wait for external sync
+		 if(ext_sync) begin
+		    running &lt;= 0;
+		    done &lt;= 1;
+		 end
+	      end
+	      endcase
+	 end else begin
+	    done &lt;= 0;
+	 end
+
+      end
+   end
+endmodule
+
+</pre>
+</div>
+<p>To generate the same exact behavior using <tt class="docutils literal"><span class="pre">seq</span></tt>, you would instead
+create a python source file as follows:</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14</pre></div></td><td class="code"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">seq</span>
+<span class="kn">from</span> <span class="nn">seq</span> <span class="kn">import</span> <span class="n">Bin</span><span class="p">,</span> <span class="n">Sequence</span>
+
+<span class="n">ext_sync</span> <span class="o">=</span> <span class="n">seq</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;ext_sync&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">example1</span> <span class="o">=</span> <span class="n">Bin</span><span class="o">.</span><span class="n">Bin</span><span class="p">(</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;example1&quot;</span><span class="p">,</span>
+    <span class="n">seqs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">Sequence</span><span class="o">.</span><span class="n">Stall</span><span class="p">(</span><span class="n">count</span><span class="o">=</span><span class="mi">10</span><span class="p">),</span>
+        <span class="n">Sequence</span><span class="o">.</span><span class="n">Sync</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="n">ext_sync</span><span class="p">),</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    
+<span class="n">example1</span><span class="o">.</span><span class="n">vlog_dump</span><span class="p">()</span>
+</pre></div>
+</td></tr></table></div>
+<p>If you named this script <tt class="docutils literal"><span class="pre">example1.py</span></tt>, then from the command line
+you can run the following command to generate the verilog:</p>
+<div class="highlight-python"><pre>python example1.py</pre>
+</div>
+<p>Upon completion, you will have an auto-generated verilog file called
+<tt class="docutils literal"><span class="pre">exmple1.v</span></tt>. If you take a peek at this file, it will not look
+anything like the manually coded one above. The exact look of the
+file, in fact, may change from version to version of <tt class="docutils literal"><span class="pre">seq</span></tt> as
+changes are made to add features or improve efficiency.</p>
+<p>Wrapping the manually and automatically generated verilog modules up
+in a common testbench, we can see that they both behave the same. The
+screen dump below from <tt class="docutils literal"><span class="pre">gtkwave</span></tt> shows that indeed they do. The
+<tt class="docutils literal"><span class="pre">clk</span></tt>, <tt class="docutils literal"><span class="pre">start</span></tt>, <tt class="docutils literal"><span class="pre">seq</span></tt>, and <tt class="docutils literal"><span class="pre">ext_sync</span></tt> signals are fed to both
+modules identically. The <tt class="docutils literal"><span class="pre">done_manual</span></tt> and <tt class="docutils literal"><span class="pre">running_manual</span></tt>
+signals are generated by the manual implementation and the
+<tt class="docutils literal"><span class="pre">done_auto</span></tt> and <tt class="docutils literal"><span class="pre">running_auto</span></tt> are generated by the automatically
+generated code. This shows that they both behave identically.</p>
+<img alt="_images/example1.png" src="_images/example1.png" />
+<p>Now let&#8217;s explain how the works line-by-line. In Lines 1-2, we import
+the python modules that we need. The <tt class="docutils literal"><span class="pre">Bin</span></tt> and <tt class="docutils literal"><span class="pre">Sequence</span></tt> modules
+contain implementation of many different classes that implement
+different types of <tt class="docutils literal"><span class="pre">Bins</span></tt> and <tt class="docutils literal"><span class="pre">Sequences</span></tt>.</p>
+<p>On line 4 we create a seq.Signal with a name <tt class="docutils literal"><span class="pre">ext_sync</span></tt> and having
+a width of 1 bit. This signal will later be referenced when we create
+the Sync Sequence. The <tt class="docutils literal"><span class="pre">Bin</span></tt> and Sync <tt class="docutils literal"><span class="pre">Sequence</span></tt> will conspire
+together to figure out that this signal is not defined anywhere else
+and so it will make it an input. Thus, when the verilog is generated,
+there will be an input port called <tt class="docutils literal"><span class="pre">ext_sync</span></tt> that has a width of 1
+and the user will need to wire up a driver to that input when
+instantiating this module.</p>
+<p>On line 6 we start the instantiation of <tt class="docutils literal"><span class="pre">Bin</span></tt>. We use a <tt class="docutils literal"><span class="pre">Bin</span></tt>
+called Bin in the Bin module (<tt class="docutils literal"><span class="pre">Bin.Bin</span></tt>). As of the writing of this
+writing there is only one other type of <tt class="docutils literal"><span class="pre">Bin</span></tt>, and it is called a
+<tt class="docutils literal"><span class="pre">Bin.Len1Bin</span></tt>. That is a very specialized <tt class="docutils literal"><span class="pre">Bin</span></tt> that is optimized
+for speed when all <tt class="docutils literal"><span class="pre">Sequences</span></tt> are simple length 1. See the module
+documentation for more information on it. Otherwise, you will usually
+use the <tt class="docutils literal"><span class="pre">Bin.Bin</span></tt> class for building your <tt class="docutils literal"><span class="pre">Bins</span></tt>.</p>
+<p>On line 7 we give the <tt class="docutils literal"><span class="pre">Bin</span></tt> a name of <tt class="docutils literal"><span class="pre">example1</span></tt>. This is the name
+of both the module and the file that gets generated. You can also use
+reference <tt class="docutils literal"><span class="pre">Bins</span></tt> by their name when embedding <tt class="docutils literal"><span class="pre">Bins</span></tt> in other
+<tt class="docutils literal"><span class="pre">Bins</span></tt>. For these reasons the name cannot be a verilog keyword and
+must obey verilog naming conventions (such as not containing spaces,
+non alpha-numeric charagers, etc.).</p>
+<p>One line 8 we begin the definition of the member <tt class="docutils literal"><span class="pre">Sequences</span></tt> of this
+<tt class="docutils literal"><span class="pre">Bin</span></tt>.  The member <tt class="docutils literal"><span class="pre">Sequencers</span></tt> are passed in as a list where the
+order corresponds to the sequence address as controlled via the
+<tt class="docutils literal"><span class="pre">seq</span></tt> input port that gets created.</p>
+<p>On line 9 will implement <tt class="docutils literal"><span class="pre">Sequence</span></tt> with address 0x0. It is a
+Stall <tt class="docutils literal"><span class="pre">Sequence</span></tt>. We give this <tt class="docutils literal"><span class="pre">Sequence</span></tt> a hard-coded <tt class="docutils literal"><span class="pre">count</span></tt>
+argument of <tt class="docutils literal"><span class="pre">10</span></tt>. This means that this <tt class="docutils literal"><span class="pre">Sequence</span></tt> will count to
+<tt class="docutils literal"><span class="pre">10</span></tt> whenever it is addressed and given the <tt class="docutils literal"><span class="pre">start</span></tt> signal. After
+counting to <tt class="docutils literal"><span class="pre">10</span></tt> it will drop its <tt class="docutils literal"><span class="pre">running</span></tt> signal and issue a
+one-shot <tt class="docutils literal"><span class="pre">done</span></tt> pulse. To make things more interesting, this Stall
+<tt class="docutils literal"><span class="pre">Sequencer</span></tt> could have also taken a Signal for the <tt class="docutils literal"><span class="pre">count</span></tt> argument
+to give it a parameterized stall point. For example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">Sequence</span><span class="o">.</span><span class="n">Stall</span><span class="p">(</span><span class="n">count</span><span class="o">=</span><span class="n">seq</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;my_stall_count&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">8</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>In this example, the generated module would then have an input of
+width 8 bits called <tt class="docutils literal"><span class="pre">my_stall_count</span></tt> that would need driven. Thus we
+just created a Stall <tt class="docutils literal"><span class="pre">Sequence</span></tt> with a programmable stall count up
+to 256 counts.</p>
+<p>On Line 10 we implement a Sync <tt class="docutils literal"><span class="pre">Sequence</span></tt> that takes on address 0x1.
+When the Sync <tt class="docutils literal"><span class="pre">Sequence</span></tt> executes, it will hold <tt class="docutils literal"><span class="pre">running</span></tt> high until
+the <tt class="docutils literal"><span class="pre">sync</span></tt> signal goes high. At that point it will drop <tt class="docutils literal"><span class="pre">running</span></tt> and
+issue an one-shot <tt class="docutils literal"><span class="pre">done</span></tt> pulse. The Sync <tt class="docutils literal"><span class="pre">Sequence</span></tt> takes additional
+optional arguments. One of the most useful is the <tt class="docutils literal"><span class="pre">active_high</span></tt>. When
+<tt class="docutils literal"><span class="pre">active_high</span></tt> is set to <tt class="xref docutils literal"><span class="pre">False</span></tt>, then the Sync module waits for the
+<tt class="docutils literal"><span class="pre">sync</span></tt> Signal to go low before returning. For example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">Sequence</span><span class="o">.</span><span class="n">Sync</span><span class="p">(</span><span class="n">sync</span><span class="o">=</span><span class="n">ext_sync</span><span class="p">,</span> <span class="n">active_high</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Finally, on line 14, we call the member function <tt class="docutils literal"><span class="pre">vlog_dump()</span></tt> that
+actually generates the verilog that implements the desired specification.</p>
+<p>The generated verilog has the following ports:</p>
+<div class="highlight-python"><pre>module example1(
+  input clk,
+  input reset_n,
+  input ext_sync,
+  input seq,
+  input start,
+  output running,
+  output done);
+...</pre>
+</div>
+<p>To use this code, you</p>
+<ul class="simple">
+<li>Hook up the <tt class="docutils literal"><span class="pre">clk</span></tt> and <tt class="docutils literal"><span class="pre">reset_n</span></tt> as normal.</li>
+<li>Create an external synchronization signal and hook it up to the
+<tt class="docutils literal"><span class="pre">ext_sync</span></tt> port. When you set the <tt class="docutils literal"><span class="pre">seq</span></tt> input high and strobe
+the <tt class="docutils literal"><span class="pre">start</span></tt> port, then the Sync <tt class="docutils literal"><span class="pre">Sequencer</span></tt> is activated and
+will wait for <tt class="docutils literal"><span class="pre">ext_sync</span></tt> to go high before dropping <tt class="docutils literal"><span class="pre">running</span></tt>
+and strobing the <tt class="docutils literal"><span class="pre">done</span></tt> one-shot.</li>
+<li>The <tt class="docutils literal"><span class="pre">seq</span></tt> port is the <tt class="docutils literal"><span class="pre">Sequencer</span></tt> address and controls which
+<tt class="docutils literal"><span class="pre">Sequence</span></tt> is activated when you strobe the <tt class="docutils literal"><span class="pre">start</span></tt> port.</li>
+<li>The <tt class="docutils literal"><span class="pre">running</span></tt> and <tt class="docutils literal"><span class="pre">done</span></tt> signals are outputs you monitor that
+come from the member <tt class="docutils literal"><span class="pre">Sequence</span></tt> that is selected via the <tt class="docutils literal"><span class="pre">seq</span></tt>
+address port.</li>
+</ul>
+<p>From this small example we are beginning to see the power of the <tt class="docutils literal"><span class="pre">seq</span></tt>
+tool set in automatically generating verilog code from specification,
+but the real power will start to become apparent the later examples
+where we introduce registers and child <tt class="docutils literal"><span class="pre">Bins</span></tt>.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="intro.html"
+                                  title="previous chapter">Introduction</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="fir_example.html"
+                                  title="next chapter">FIR Filter Example</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="_sources/example1.txt"
+                     rel="nofollow">Show Source</a></li>
+            </ul>
+          <div id="searchbox" style="display: none">
+            <h3>Quick search</h3>
+              <form class="search" action="search.html" method="get">
+                <input type="text" name="q" size="18" />
+                <input type="submit" value="Go" />
+                <input type="hidden" name="check_keywords" value="yes" />
+                <input type="hidden" name="area" value="default" />
+              </form>
+              <p class="searchtip" style="font-size: 90%">
+              Enter search terms or a module, class or function name.
+              </p>
+          </div>
+          <script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="fir_example.html" title="FIR Filter Example"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="intro.html" title="Introduction"
+             >previous</a> |</li>
+        <li><a href="index.html">seq v1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2010, Lane Brooks.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.6.
+    </div>
+  </body>
+</html>
