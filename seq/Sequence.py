@@ -22,7 +22,7 @@ def auto_dispatch(f):
 ################################################################################
 class Sequence(object):
     """A Sequence is an abstract class that provides a common interface
-for a Sequencer to use to generate HDL that reprasents the desired
+for a Bin to use to generate HDL that reprasents the desired
 sequence functionality.  You should never instance this class directly
 but should use one of the many derived classes available.
 """
@@ -33,15 +33,15 @@ but should use one of the many derived classes available.
 provided, a unique name will be automatically assigned.
 
 :param running: A seq.Signal (of width 1) that will become an
-output of the Sequencer module that will go high when this sequence
+output of the Bin module that will go high when this sequence
 is running
 
 :param done: A seq.Signal (of width 1) that will become an output
-of the Sequencer module that will go pulse high (one-shot) when this
+of the Bin module that will go pulse high (one-shot) when this
 sequence is done running
 
 :param start: A seq.Signal (of width 1) that will become an output
-of the Sequencer module that will go pulse high (one-shot) when this
+of the Bin module that will go pulse high (one-shot) when this
 sequence is started
 
 :param subseqs: A list of Sequence's that is controlled by the
@@ -130,25 +130,25 @@ same amount of time but not actually set the registers.
         for subseq in self.subseqs:
             subseq.register_unique_names(names)
 
-    def link(self, sequencer, parent, data):
+    def link(self, bin, parent, data):
         """:param data: A dict keyed on type(self) that each Sequence can
         use to register data it can use when generated logic that is shared
         between all Sequences of the same type"""
-        self.sequencer = sequencer
+        self.bin = bin
         self.parent = parent
         if not data.has_key(type(self)):
             data[type(self)] = dict(insts = [])
         data[type(self)]["insts"].append(self)
 
         for sig in self._export_sigs.values():
-            self.sequencer.register_port(seq.Port(sig, "output"))
+            self.bin.register_port(seq.Port(sig, "output"))
 
         if self.dryrun is None:
             pass
         elif type(self.dryrun) is seq.Signal:
             if(self.dryrun.width != 1):
                 raise Exception("Signal %s assigned to dryrun must be width = 1" % self.dryrun.name)
-            self.sequencer.register_port(seq.Port(self.dryrun, "input"))
+            self.bin.register_port(seq.Port(self.dryrun, "input"))
             self.dryrun = self.dryrun.name
         else:
             self.dryrun = str(self.dryrun)
@@ -230,14 +230,14 @@ same amount of time but not actually set the registers.
     def find_reg(self, reg):
         """This will lookup the reg and return the Signal reference to it.
 :param reg: str"""
-        return self.sequencer.get_reg(reg)
+        return self.bin.get_reg(reg)
 
     def use_reg(self, reg):
         """Like find_reg() but will also remove the reg from the output port list because
         it is an internal register only.  
 :param reg: str"""
         r = self.find_reg(reg)
-        del self.sequencer.ports[reg]
+        del self.bin.ports[reg]
         return r
             
 ################################################################################
@@ -252,7 +252,7 @@ register, for example).
 :param set: A dict keyed off the register name.  The value is int or Signal
 that the register will be set to.
 
-Suppose your Sequencer has a registers named 'X', 'Y', and 'Z', then you can
+Suppose your Bin has a registers named 'X', 'Y', and 'Z', then you can
 set them as follows:
     Set(name="xyz", set=dict(X=1, Y=10, Z="4'b1010"))
 
@@ -267,8 +267,8 @@ You can also set them to Signals.  For example:
             raise Exception("'set' argument must be a dict")
         Sequence.__init__(self, **kw)
 
-    def link(self, sequencer, parent, data):
-        Sequence.link(self, sequencer, parent, data)
+    def link(self, bin, parent, data):
+        Sequence.link(self, bin, parent, data)
 
         # create the signals in a mapping for easy lookup and
         # put Signals into the port list if they are setting
@@ -276,12 +276,12 @@ You can also set them to Signals.  For example:
         self.mapping = {}
         self.inputs = {}
         for k,v in self._set.items():
-            if not(self.sequencer.regs.has_key(k)):
+            if not(self.bin.regs.has_key(k)):
                 raise Exception("Parent does not have a register called %s in Sequence %s %s" % (k, self.name, self))
 
             if type(v) is seq.Signal:
                 val = v.name
-                self.sequencer.register_port(seq.Port(v, "input")) # create as in input port as it must be supplied externally
+                self.bin.register_port(seq.Port(v, "input")) # create as in input port as it must be supplied externally
             else:
                 val = v
 
@@ -318,24 +318,24 @@ You can also set them to Signals.  For example:
 ################################################################################
 class Reset(Set):
     """This Sequence extends the Set sequence.  It takes in no arguments
-    and sets all the registers of the Sequencer to their init values.
+    and sets all the registers of the Bin to their init values.
     """
     def __init__(self, **kw):
         """See Sequence for available arguments."""
         # initially pass in an empty set dict.  we will fill in the
         # set dict after linking and we can access the complete regsiter
-        # list in the parent sequencer
+        # list in the parent bin
         Set.__init__(self, set={}, **kw)
 
-    def link(self, sequencer, parent, data):
+    def link(self, bin, parent, data):
         # prior to calling link on the Set, we generate the set dict
-        # for all registers in the sequencer with values specified
+        # for all registers in the bin with values specified
         # by the Signals init value
-        for name, reg in sequencer.regs.items():
+        for name, reg in bin.regs.items():
             self._set[name] = reg.init
 
         # now call the Set link method
-        Set.link(self, sequencer, parent, data)
+        Set.link(self, bin, parent, data)
 ################################################################################
 
 ################################################################################
@@ -344,7 +344,7 @@ class Nop(Set):
     for example, within a Select sequence when you want to Select
     between running a Sequence or doing nothing."""
     def __init__(self, **kw):
-        """See Sequencer for available arguments."""
+        """See Bin for available arguments."""
         Set.__init__(self, set={}, **kw)
 ################################################################################
 
@@ -359,7 +359,7 @@ class Stall(Set):
     :param count: A seq.Signal that tells this sequence how many
         clock cycles to stall for.  It can also be an integer if the stop
         count should be hard coded.  If it is a str, then the Signal will
-        be looked up in the regs list of the parent sequencer.  The stall
+        be looked up in the regs list of the parent bin.  The stall
         duration does not include the 'start' one shot value.
     
     :param set: A dict of signals and their value to be set for the
@@ -375,14 +375,14 @@ class Stall(Set):
         self.stop_count = count
         self.set_at_end = set_at_end
 
-    def link(self, sequencer, parent, data):
-        Set.link(self, sequencer, parent, data)
+    def link(self, bin, parent, data):
+        Set.link(self, bin, parent, data)
         if type(self.stop_count) is str: # replace string with reg Signal
             self.stop_count = self.use_reg(self.stop_count)
         elif type(self.stop_count) is int: # convert ints as a constant Signal
             self.stop_count = seq.Signal(str(self.stop_count), width=seq.calc_width(self.stop_count+1), init=0)
         elif type(self.stop_count) is seq.Signal: # add it to the port list
-            self.sequencer.register_port(seq.Port(self.stop_count, "input"))
+            self.bin.register_port(seq.Port(self.stop_count, "input"))
         else:
             raise Exception("Argument 'count' provided is not an int or Signal")
 
@@ -431,14 +431,14 @@ class Stall(Set):
 class Trigger(Stall):
     """This Sequence emits a programmable length pulse or trigger
         signal.  'reg' must be the in the reg list of the parent
-        Sequencer control this sequence.  The trigger is applied bit-wise,
+        Bin control this sequence.  The trigger is applied bit-wise,
         so if the reg is a bus, all bits get triggered.
 
         If this sequence is interrupted in the middle of operation
         then the trigger may not complete leaving the reg toggled.
 
 :param reg: A seq.Signal or a string referencing the
-seq.Signal name in the regs list of the parent Sequencer.
+seq.Signal name in the regs list of the parent Bin.
 
 :param count: A seq.Signal, int, string, or None indicating 
 how long the trigger pulse should be.  When None, the trigger is a
@@ -463,15 +463,15 @@ active low.
         if not(type(self.reg) in [seq.Signal, str]):
             raise Exception("'reg' argument must be a Signal or string. You provided a %s." % type(self.reg))
 
-    def link(self, sequencer, parent, data):
+    def link(self, bin, parent, data):
         if self.stop_count is None:
-            Sequence.link(self, sequencer, parent, data)
+            Sequence.link(self, bin, parent, data)
         else:
             # register this a type Stall so the static logic gets created
             if not data.has_key(Stall):
                 data[Stall] = dict(insts = [])
             data[Stall]["insts"].append(self)
-            Stall.link(self, sequencer, parent, data)
+            Stall.link(self, bin, parent, data)
         if type(self.reg) is str: # do the register string replacement
             self.reg = self.find_reg(self.reg)
 
@@ -538,16 +538,16 @@ active low.
 class Toggle(Sequence):
     """This Sequence toggles the provided reg by inverting all the bits
         of the reg.  The reg must be the in the reg list of the
-        parent Sequencer control this sequence.  
+        parent Bin control this sequence.  
 
 :param reg: A seq.Signal or a string of the seq.Signal name
-        in the regs list of the parent Sequencer."""
+        in the regs list of the parent Bin."""
     def __init__(self, reg, **kw):
         Sequence.__init__(self, **kw)
         self.reg = reg;
 
-    def link(self, sequencer, parent, data):
-        Sequence.link(self, sequencer, parent, data)
+    def link(self, bin, parent, data):
+        Sequence.link(self, bin, parent, data)
         if type(self.reg) is str:
             self.reg = self.find_reg(self.reg)
             
@@ -570,14 +570,14 @@ class Toggle(Sequence):
 
 ################################################################################
 class Sync(Set):
-    """This Sequencer will wait until all bits in the sync signal are
+    """This Bin will wait until all bits in the sync signal are
 active.  You specify whether sync is active high or low.  This
 overrides Set, you can use the **kw to set registers at the start of
 this Sequence
 
 :param sync: A seq.Signal on which this Sequence waits.  If it is a
     str, then the Signal will be looked up in the regs list of the
-    parent sequencer.  
+    parent bin.  
 
 :param active_high: If True, then this Sequence waits until all bits in
 sync are high.  Otherwise waits until they are all low.
@@ -592,13 +592,13 @@ sync are high.  Otherwise waits until they are all low.
         self.sync = sync
         self.active_high = active_high
 
-    def link(self, sequencer, parent, data):
-        Set.link(self, sequencer, parent, data)
+    def link(self, bin, parent, data):
+        Set.link(self, bin, parent, data)
         # lookup sync in the reg list if it a string
         if type(self.sync) is str:
             self.sync = self.find_reg(self.sync)
         elif type(self.sync) is seq.Signal:
-            self.sequencer.register_port(seq.Port(self.sync, "input"))
+            self.bin.register_port(seq.Port(self.sync, "input"))
         else:
             raise Exception("'sync' argument must be a seq.Signal")
 
@@ -615,7 +615,7 @@ sync are high.  Otherwise waits until they are all low.
 ################################################################################
 class Child(Set):
     """A Child Sequence is used to start a Sequence in a child
-Sequencer.  There are two variants availalbe.  When child_sequence is
+Bin.  There are two variants availalbe.  When child_sequence is
 a Signal, then the child Sequence to be executed is specified as an
 input parameter.  When the child_sequence is a Sequence or a string,
 then that sequence is executed.
@@ -632,22 +632,22 @@ report done.  When this is a seq.Signal of width 1, then the signal
 will be used to determine whether this sequence detaches.  If you run
 detached, you can use the 'running' and 'done' signals to sync to
 using a Sequence.Sync.  You must be careful when running in detached
-mode because other start calls into the child sequencer will stop and
+mode because other start calls into the child bin will stop and
 cancel the detached sequence causing its running flag with no done
 signal being emitted.
 """
 
     def __init__(self, sequence, set={}, detach=False, **kw):
         """:param sequence: Can be a Sequence or string referenceing a
-Sequence in sequencer or a seq.Signal if you want it
+Sequence in bin or a seq.Signal if you want it
 programmable"""
         Set.__init__(self, set=set, **kw)
-#        self.child_sequencer = sequencer
+#        self.child_bin = bin
         self.child_seq = sequence
         self.detach = detach
         
-    def link(self, sequencer, parent, data):
-        Set.link(self, sequencer, parent, data)
+    def link(self, bin, parent, data):
+        Set.link(self, bin, parent, data)
 
         self.edeclare = []
         self.elogic = []
@@ -655,69 +655,69 @@ programmable"""
         if type(self.child_seq) is str:
             # When child_seq is a string, we lookup the child sequence to run
             try:
-                self.child_sequencer = sequencer.get_child_sequencer(self.child_seq)
-                self.assign = [ "child_%s_seq_ <= child_%s_%s_;" % (self.child_sequencer.name, self.child_sequencer.name, self.child_seq)]
-                self.sequencer.add_child_start(self.child_sequencer.name, self.start)
-                self.done_name = "child_%s_done_" % self.child_sequencer.name
+                self.child_bin = bin.get_child_bin(self.child_seq)
+                self.assign = [ "child_%s_seq_ <= child_%s_%s_;" % (self.child_bin.name, self.child_bin.name, self.child_seq)]
+                self.bin.add_child_start(self.child_bin.name, self.start)
+                self.done_name = "child_%s_done_" % self.child_bin.name
             except KeyError:
-                raise Exception("Cannot find requested child sequence by name %s in sequencer" % self.child_seq)
+                raise Exception("Cannot find requested child sequence by name %s in bin" % self.child_seq)
         elif issubclass(type(self.child_seq), Sequence):
             # When child_seq is a sequence, no need to lookup beceause have the sequence
-            self.child_sequencer = self.child_seq.sequencer
-            self.assign = [ "child_%s_seq_ <= child_%s_%s_;" % (self.child_sequencer.name, self.child_sequencer.name, self.child_seq.name)]
-            self.sequencer.add_child_start(self.child_sequencer.name, self.start)
-            self.done_name = "child_%s_done_" % self.child_sequencer.name
+            self.child_bin = self.child_seq.bin
+            self.assign = [ "child_%s_seq_ <= child_%s_%s_;" % (self.child_bin.name, self.child_bin.name, self.child_seq.name)]
+            self.bin.add_child_start(self.child_bin.name, self.start)
+            self.done_name = "child_%s_done_" % self.child_bin.name
 
         elif type(self.child_seq) is seq.Signal:
             # When the child_seq is a Signal, that means the choice of
             # the is a being set from an input signal.  This gets
             # complicated when there is more than one possible child
             # to execute.  So what we do is give the MSBs of the input
-            # Signal to be the child sequencer address and use the
+            # Signal to be the child bin address and use the
             # LSBs and the child Sequence address.
 
             # First add the input port for the signal
-            self.sequencer.register_port(seq.Port(self.child_seq, "input"))
+            self.bin.register_port(seq.Port(self.child_seq, "input"))
 
-            # calculate the Sequencer/Sequence address breakdown of the input signal
-            if(len(sequencer.children) <= 1):
-                sequencer_addr_width = 0
+            # calculate the Bin/Sequence address breakdown of the input signal
+            if(len(bin.children) <= 1):
+                bin_addr_width = 0
             else:
-                sequencer_addr_width = seq.calc_width(len(sequencer.children))
+                bin_addr_width = seq.calc_width(len(bin.children))
 
             sequence_addr_width=1
-            for child in sequencer.children:
+            for child in bin.children:
                 w = seq.calc_width(len(child.seqs))
                 if(w > sequence_addr_width): sequence_addr_width = w
-            sig_width = sequencer_addr_width + sequence_addr_width
+            sig_width = bin_addr_width + sequence_addr_width
 
             # now check that the provided Signal is right width
             if(sig_width != self.child_seq.width):
-                raise Exception("Width of child sequence selection signal %s is not correct.  It should be %d (%d bits for Sequencer address and %d bits for Sequence address" % (self.child_seq.name, sig_width, sequencer_addr_width, sequence_addr_width))
+                raise Exception("Width of child sequence selection signal %s is not correct.  It should be %d (%d bits for Bin address and %d bits for Sequence address" % (self.child_seq.name, sig_width, bin_addr_width, sequence_addr_width))
 
             # now generate the extra logic for programmable state selection
-            if(sequencer_addr_width == 0):
-                self.child_sequencer = sequencer.children[0]
-                self.assign = [ "child_%s_seq_ <= %s;" % (self.child_sequencer.name, self.child_seq.name)]
-                self.sequencer.add_child_start(self.child_sequencer.name, self.start)
-                self.done_name = "child_%s_done_" % self.child_sequencer.name
+            if(bin_addr_width == 0):
+                self.child_bin = bin.children[0]
+                self.assign = [ "child_%s_seq_ <= %s;" % (self.child_bin.name, self.child_seq.name)]
+                self.bin.add_child_start(self.child_bin.name, self.start)
+                self.done_name = "child_%s_done_" % self.child_bin.name
 
             else:
-#                self.child_sequencer = sequencer.children[0]
-                self.edeclare.append("wire [%d:0] seq_%s_child_sel_ = %s[%d:%d];" % ( sequencer_addr_width-1, self.name, self.child_seq.name, self.child_seq.width-1, self.child_seq.width-sequencer_addr_width,))
+#                self.child_bin = bin.children[0]
+                self.edeclare.append("wire [%d:0] seq_%s_child_sel_ = %s[%d:%d];" % ( bin_addr_width-1, self.name, self.child_seq.name, self.child_seq.width-1, self.child_seq.width-bin_addr_width,))
                 self.edeclare.append("wire [%d:0] seq_%s_seq_sel_ = %s[%d:0];" % ( sequence_addr_width-1, self.name, self.child_seq.name, sequence_addr_width-1))
                 self.edeclare.append("wire seq_%s_done_sel_;" % ( self.name, ))
                 self.assign = ["case(seq_%s_child_sel_)" % (self.name,)]
                 done = []
-                for i, child in enumerate(sequencer.children):
+                for i, child in enumerate(bin.children):
                     self.assign.append("  %d: begin" % i)
                     self.assign.append("    child_%s_seq_ <= seq_%s_seq_sel_[%d:0];" % (child.name, self.name, seq.calc_width(len(child.seqs))-1))
                     self.assign.append("  end")
                     start = "%s%s_" % ( self.start, child.name, )
                     self.edeclare.append("wire %s;" % ( start,))
-                    self.elogic.append("assign %s = %s & (%s[%d:%d] == %d);" % (start, self.start, self.child_seq.name, self.child_seq.width-1, self.child_seq.width-sequencer_addr_width, i))
+                    self.elogic.append("assign %s = %s & (%s[%d:%d] == %d);" % (start, self.start, self.child_seq.name, self.child_seq.width-1, self.child_seq.width-bin_addr_width, i))
                     done.append("(child_%s_done_ & (seq_%s_child_sel_ == %d))" % (child.name, self.name, i, ))
-                    self.sequencer.add_child_start(child.name, start)
+                    self.bin.add_child_start(child.name, start)
                 self.elogic.append("assign seq_%s_done_sel_ = %s;" % (self.name, " || ".join(done)))
                 self.done_name = "seq_%s_done_sel_" % self.name
                 self.assign.append("endcase")
@@ -729,7 +729,7 @@ programmable"""
         if type(self.detach) is str:
             self.detach = self.find_reg(self.detach)
         elif type(self.detach) is seq.Signal:
-            self.sequencer.register_port(seq.Port(self.detach, "input"))
+            self.bin.register_port(seq.Port(self.detach, "input"))
         elif type(self.detach) is bool:
             pass
         else:
@@ -780,10 +780,10 @@ run.  When set to 1, the first 2 Sequences will run, etc.
         self.next_addr = "next_%s" % self.addr
         self.term = term
 
-    def link(self, sequencer, parent, data):
-        Set.link(self, sequencer, parent, data)
+    def link(self, bin, parent, data):
+        Set.link(self, bin, parent, data)
         if self.term:
-            self.sequencer.register_port(seq.Port(self.term, "input"))
+            self.bin.register_port(seq.Port(self.term, "input"))
 
 
     def _vlog_gen_declare(self):
@@ -900,9 +900,9 @@ class Select(Sequence):
         self.sel = sel
         
 
-    def link(self, sequencer, parent, data):
-        Sequence.link(self, sequencer, parent, data)
-        self.sequencer.register_port(seq.Port(self.sel, "input"))
+    def link(self, bin, parent, data):
+        Sequence.link(self, bin, parent, data)
+        self.bin.register_port(seq.Port(self.sel, "input"))
 
     def _vlog_gen_declare(self):
         s = ["wire select_%s_done_;" % self.name]
@@ -942,12 +942,12 @@ class Repeat(Sequence):
 :param count: A seq.Signal that tells this sequence how many tims
     to execute 'subseq' Sequence.  It can also be an integer if the
     number of repeats can be hard coded.  If it is a str, then the
-    Signal will be looked up in the regs list of the parent sequencer.
+    Signal will be looked up in the regs list of the parent bin.
     A value of '0' is not valid and will cause the subseq to be run the
     max number of times.
 
 :param counter: A seq.Signal that is not in the reg list of the parent
-sequencer that will be assigned to the current loop number.  If None, then 
+bin that will be assigned to the current loop number.  If None, then 
 current loop number is not exported and kept internal.
 """
         kw["subseqs"] = [subseq]
@@ -956,20 +956,20 @@ current loop number is not exported and kept internal.
 
         Sequence.__init__(self, **kw)
 
-    def link(self, sequencer, parent, data):
-        Sequence.link(self, sequencer, parent, data)
+    def link(self, bin, parent, data):
+        Sequence.link(self, bin, parent, data)
 
         if type(self.count) is str: # replace string with reg Signal
             self.count = self.use_reg(self.count)
         elif type(self.count) is int: # convert ints as a constant Signal
             self.count = seq.Signal(str(self.count), width=seq.calc_width(self.count+1), init=0)
         elif type(self.count) is seq.Signal: # add it to the port list
-            self.sequencer.register_port(seq.Port(self.count, "input"))
+            self.bin.register_port(seq.Port(self.count, "input"))
         else:
             raise Exception("Argument 'count' provided is not an int or Signal or str in the reg list")
 
         if self.output:
-            sequencer.register_port(seq.Port(self.output, "output"))
+            bin.register_port(seq.Port(self.output, "output"))
 
         self.counter = seq.Signal(name="seq_%s_counter_"% (self.name,), width=self.count.width)
             
@@ -1017,7 +1017,7 @@ reached.  The decrement value is 'skip'.  Overflow is watched and
 accounted for, so it is safe to set the stop param to zero."""
 
     def __init__(self, reg, stop, skip, **kw):
-        """:param reg: A seq.Signal or string in the parent sequencer reg list.
+        """:param reg: A seq.Signal or string in the parent bin reg list.
 :param stop: A seq.Signal or int value corresponding to the value at which the counter should stop decrementing
 :param skip: A seq.Signal or int value corresponding to the decrement amount.
 """
@@ -1026,13 +1026,13 @@ accounted for, so it is safe to set the stop param to zero."""
         self.stop = stop
         self.skip = skip
 
-    def link(self, sequencer, parent, data):
-        Sequence.link(self, sequencer, parent, data)
+    def link(self, bin, parent, data):
+        Sequence.link(self, bin, parent, data)
         # lookup the reg in the reg list if it a string
         if type(self.reg) is str:
             self.reg = self.find_reg(self.reg)
         else:
-            raise Exception("reg must be string reference to register that is part of the parent sequencer in %s" % (self, ))
+            raise Exception("reg must be string reference to register that is part of the parent bin in %s" % (self, ))
 
         # expand stop and skip if they are ints
         if type(self.stop) is int:
@@ -1040,14 +1040,14 @@ accounted for, so it is safe to set the stop param to zero."""
         elif type(self.stop) is str:
             self.stop = self.use_reg(self.stop)
         elif type(self.stop) is seq.Signal:
-            self.sequencer.register_port(seq.Port(self.stop, "input"))
+            self.bin.register_port(seq.Port(self.stop, "input"))
         else:
             raise Exception("Unknown stop_type in %s" % (self, ))
 
         if type(self.skip) is int:
             self.skip = seq.Signal(str(self.skip), width=seq.calc_width(self.skip+1), init=0)
         elif type(self.skip) is seq.Signal:
-            self.sequencer.register_port(seq.Port(self.skip, "input"))
+            self.bin.register_port(seq.Port(self.skip, "input"))
         else:
             raise Exception("Unknown skip type in %s" % (self, ))
 
@@ -1103,95 +1103,154 @@ class SerialMultiply(Sequence):
 The SerialMultiply sequence will multiply two signals together using an
 adder/shifter in the same way people do long multiplication by hand. 
 Signal 'a' is multiplied with signal 'b'. It will take as many clock
-cycles as the width of the signal 'b'. The signal 'out' updated
-when done.
+cycles as the width of the signal 'b', so if 'a' and 'b' are not the same
+width, select 'b' as the narrower. The 'out' register is the correct
+results when done but takes on the intermediate values while 'running'
+is high. Typically, the width of 'out' should equal the width of 'a'
+plus the width of 'b' to capture all possible output results (when 
+'a' and 'b' are unsigned). An optional argument 'justify' can be used
+when the output is not wide enough and truncation needs to occur. If
+'justify' is "left", then the output is left justified and LSB's are
+dropped. If 'justify is 'right', then MSB's are dropped (although this
+is currently not implemented). Currently 'out' cannot be wider than
+the width of 'a' plus the width of 'b'. 
+
+This class implementst the differences in multiplication between
+signed versus unsigned integers, however, the three arguments must all
+be the same (meaning 'a', 'b', and 'out' must match in terms of sign).
+It is turn that signed multiplication results in an output of width
+that is one less than unsigned multiplication, but that optimization
+is not currently implemented.
 
 :param a: Signal or int that is the first input to be multiplied.
 :param b: Signal or int that is the second input to be multiplied.
 :param out: reg (signal or string) to save the result in.
+:param justify: str that is either "left" or "right"
 
-Example: Suppose your Sequencer has a registers named 'X', 'Y', and
-'Z', then you can set them as follows:
-  
-  SerialMultiply(a=X, b=Y, out=Z)
+Unsigned Example:
 
+    a1 = seq.Signal("a1", width=4)
+    b1 = seq.Signal("b1", width=4)
+    out1 = seq.Signal("out1", width=8)
+    test1 = Bin.Bin(
+        name = "test1",
+        regs = [ out1, ],
+        seqs = [ Sequence.SerialMultiply(a=a1, b=b1, out="out1"), ]
+        )
+    test1.vlog_dump()
+
+Signed Example:
+
+    out2 = seq.Signal("out2", width=8, signed=True)
+    test2 = Bin.Bin(
+        name = "test2",
+        regs = [ out2, ],
+        seqs = [
+            Sequence.SerialMultiply(a=seq.Signal("a2", width=4, signed=True),
+                                    b=seq.Signal("b2", width=4, signed=True), 
+                                    out=out2),
+                ]
+        )
+    test2.vlog_dump()
 """
-    def __init__(self, a, b, out, justify="right", **kw):
+    def __init__(self, a, b, out, justify="left", **kw):
         self.ab = [a,b]
         self.out = out
         self.justify = justify
         if not(justify in ["right", "left"]):
             raise Exception("justify argument must be 'right' or 'left'. You provided %s." % justify)
+
         Sequence.__init__(self, **kw)
 
-    def link(self, sequencer, parent, data):
-        Sequence.link(self, sequencer, parent, data)
+    def link(self, bin, parent, data):
+        Sequence.link(self, bin, parent, data)
 
         self.inputs = {}
-        for i,ab in self.ab:
+        for i,ab in enumerate(self.ab):
             if type(ab) is str: # replace string with reg Signal
                 self.ab[i] = self.use_reg(ab)
             elif(type(ab) is int):
                 self.ab[i] = seq.Signal(str(ab), width=seq.calc_width(ab+1), init=0)
             elif type(ab) is seq.Signal:
-                self.sequencer.register_port(seq.Port(ab, "input")) # create as in input port as it must be supplied externally
+                self.bin.register_port(seq.Port(ab, "input")) # create as in input port as it must be supplied externally
             else:
                 raise Exception("Unknown type=%s for a/b argument" % type(ab))
 
-        if type(out) is str:
-            self.out = self.use_reg(out)
-        elif type(out) is seq.Signal:
-            if not(out in self.sequencer.regs):
-                raise Exception("Parent does not have a register called %s in Sequence %s %s" % (out.name, self.name, self))
+        if type(self.out) is str:
+            self.out = self.find_reg(self.out)
+        elif type(self.out) is seq.Signal:
+            if not(self.out.name in self.bin.regs):
+                raise Exception("Parent does not have a register called %s in Sequence %s %s" % (self.out.name, self.name, self))
         else:
             raise Exception("Unknown type=%s for out argument" % type(out))
+
+        if(self.out.width > self.ab[0].width + self.ab[1].width):
+            raise Exception("Curently, the width of the output register must not be greater than the width of 'a' plus the width of 'b'");
+
+        if(self.out.width < self.ab[0].width+1):
+            raise Exception("Curently, the width of the output register must not be less than the width of 'a'+1");
 
         if(self.ab[0].signed != self.ab[1].signed):
             raise Exception("a and b must match in term of signs (signed or unsigned)")
         if(self.ab[0].signed != self.out.signed):
             raise Exception("a and out must match in term of signs (signed or unsigned)")
 
-        if data[SerialMultiply].has_key("max_width"):
-            if(data[SerialMultiply]["max_width"] < self.ab[1].width):
-                data[SerialMultiply]["max_width"] = self.ab[1].width;
+        if data[SerialMultiply].has_key("max_b_width"):
+            if(data[SerialMultiply]["max_b_width"] < self.ab[1].width):
+                data[SerialMultiply]["max_b_width"] = self.ab[1].width;
         else:
-            data[SerialMultiply]["max_width"] = self.ab[1].width;
+            data[SerialMultiply]["max_b_width"] = self.ab[1].width;
 
     def _vlog_gen_declare(self):
-        s = Set._vlog_gen_declare(self)
-        s.append("wire serial_mult_done_%s_;" % (self.name, ))
-        return s
-
+        s = [ "wire serial_mult_done_%s_;" % (self.name, ), ]
+        if(self.out.signed):
+            s.append("wire [%d:0] %s_%s_ = {%s[%d], %s, {%d{1'b0}}};" % (self.out.width-1, self.ab[0].name, self.name, self.ab[0].name, self.ab[0].width-1, self.ab[0].name, self.ab[1].width-1+(self.out.width-self.ab[0].width-self.ab[1].width)))
+            s.append("wire [%d:0] %s_%s_by_2_ = { %s[%d], %s[%d:1] };" % (self.out.width-1, self.out.name, self.name, self.out.name, self.out.width-1, self.out.name, self.out.width-1))
+        else:
+            s.append("wire [%d:0] %s_%s_ = {1'b0, %s, {%d{1'b0}}};" % (self.out.width-1,self.ab[0].name, self.name, self.ab[0].name, self.ab[1].width-1+(self.out.width-self.ab[0].width-self.ab[1].width)))
+            s.append("wire [%d:0] %s_%s_by_2_ = %s >> 1;" % (self.out.width-1, self.out.name, self.name, self.out.name))
+        return s;
 
     def _vlog_gen_seq(self, set_at_end=False):
         s = []
-        s.append(['if(%s[serial_multiply_count_]) begin' % self.ab[1].name])
-        s.append(['   if(serial_multiply_count_ == %d-1) begin' % self.ab[1].width])
-        s.append(['      serial_multiply_accum_ <= serial_multiply_accum_by_2_ - serial_multiply_a0_;'])
-        s.append(['   end else begin'])
-        s.append(['      serial_multiply_accum_ <= serial_multiply_accum_by_2_ + serial_multiply_a0_;'])
-        s.append(['   end'])
-        s.append(['end else begin'])
-        s.append(['   serial_multiply_accum_ <= serial_multiply_accum_by_2_;'])
-        s.append(['end'])
+        signed = ""
+        if(self.ab[0].signed):
+            signed = "signed_"
+
+        s.append('if(start) begin')
+        s.append('   %s <= 0;' % (self.out.name,))
+        s.append('end else if(running) begin')
+        s.append('   if(%s[serial_multiply_count_]) begin' % self.ab[1].name)
+        if(self.out.signed):
+            s.append('      if(serial_multiply_count_ == %d)' % (self.ab[1].width-1,))
+            s.append('         %s <= %s_%s_by_2_ - %s_%s_;' % (self.out.name, self.out.name, self.name, self.ab[0].name, self.name))
+            s.append('      else')
+            s.append('         %s <= %s_%s_by_2_ + %s_%s_;' % (self.out.name, self.out.name, self.name, self.ab[0].name, self.name))
+        else:
+            s.append('      %s <= %s_%s_by_2_ + %s_%s_;' % (self.out.name, self.out.name, self.name, self.ab[0].name, self.name))
+            
+        s.append('   end else begin')
+        s.append('      %s <= %s_%s_by_2_;' % (self.out.name, self.out.name, self.name,))
+        s.append('   end')
+        s.append('end')
         return s
     
     def _vlog_gen_done(self):
         return "%s & serial_mult_done_%s_" % (self.running, self.name)
 
     def _vlog_gen_running(self):
-        return [ "%s <= %s;" % (self.running, self.start,) ]
+        return [ "if(%s) %s <= 1; else if(%s || start) %s <= 0;" % (self.start, self.running, self.done, self.running)]
 
     @staticmethod
     def vlog_gen_static_logic(data):
         start = [inst.start for inst in data[SerialMultiply]["insts"]]
         
-        s = ["  reg  [%d:0] serial_multiply_count_;" % (data[SerialMultiply]["max_width"]-1, ),
+        s = ["  reg  [%d:0] serial_multiply_count_;" % (data[SerialMultiply]["max_b_width"]-1, ),
              "  wire start_serial_multiply_ = %s;" % (" || ".join(start)),
-             "  wire [%d:0] next_serial_multiply_count_ = (start_serial_multiply_) ? 0 : (&serial_multiply_count_) ? serial_multiply_count_ : serial_multiply_count_ + 1;" % (data[SerialMultiply]["max_width"]-1, ),
+             "  wire [%d:0] next_serial_multiply_count_ = (start_serial_multiply_) ? 0 : (&serial_multiply_count_) ? serial_multiply_count_ : serial_multiply_count_ + 1;" % (data[SerialMultiply]["max_b_width"]-1, ),
              "  /* verilator lint_off WIDTH */", ]
         for inst in data[SerialMultiply]["insts"]:
-            s.append("  assign serial_multiply_done_%s_ = serial_multiply_count_ >= (%s-%d'b1);" % (inst.name, inst.ab[1].name, inst.ab[1].width))
+            s.append("  assign serial_mult_done_%s_ = serial_multiply_count_ >= (%s-1);" % (inst.name, inst.ab[1].width,))
         s.append("  /* verilator lint_on WIDTH */" )
         s.extend(["  always @(posedge clk or negedge reset_n) begin",
                   "    if(!reset_n) begin",
