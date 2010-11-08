@@ -1262,3 +1262,77 @@ Signed Example:
                   ])
         return s
 ################################################################################
+
+################################################################################
+class Add(Sequence):
+    """
+This sequence will add two signals together.
+
+:param a: Signal or int that is the first input to be added
+:param b: Signal or int that is the second input to be added
+:param out: reg (signal or string) to save the result in.
+:param clamp: should the output be clamped if overflow is possible.
+Example:
+    TODO
+"""
+    def __init__(self, a, b, out, clamp=False, **kw):
+        self.ab = [a,b]
+        self.out = out
+        self.clamp = clamp
+        Sequence.__init__(self, **kw)
+
+    def link(self, bin, parent, data):
+        self.ab = [a,b]
+        self.out = out
+        self.justify = justify
+        if not(justify in ["right", "left"]):
+            raise Exception("justify argument must be 'right' or 'left'. You provided %s." % justify)
+
+        Sequence.__init__(self, **kw)
+
+    def link(self, bin, parent, data):
+        Sequence.link(self, bin, parent, data)
+
+        self.inputs = {}
+        for i,ab in enumerate(self.ab):
+            if type(ab) is str: # replace string with reg Signal
+                self.ab[i] = self.use_reg(ab)
+            elif(type(ab) is int):
+                self.ab[i] = seq.Signal(str(ab), width=seq.calc_width(ab+1), init=0)
+            elif type(ab) is seq.Signal:
+                self.bin.register_port(seq.Port(ab, "input")) # create as in input port as it must be supplied externally
+            else:
+                raise Exception("Unknown type=%s for a/b argument" % type(ab))
+
+        if type(self.out) is str:
+            self.out = self.find_reg(self.out)
+        elif type(self.out) is seq.Signal:
+            if not(self.out.name in self.bin.regs):
+                raise Exception("Parent does not have a register called %s in Sequence %s %s" % (self.out.name, self.name, self))
+        else:
+            raise Exception("Unknown type=%s for out argument" % type(out))
+
+    def _vlog_gen_declare(self):
+        w = max(self.ab[0].width, self.ab[1].width)
+        s = []
+        print w, self.clamp
+        if self.clamp and w >= self.out.width: # no need to clamp if output width is sufficient
+            raw_name = "%s_%s_raw_" % (self.out.name, self.name,)
+            s.append("wire [%d:0] %s = %s + %s;" % (w, raw_name, self.ab[0].name, self.ab[1].name))
+            if(self.out.signed):
+                s.append("wire [%d:0] %s_%s_ = (!%s[%d] & |%s[%d:%d]) ? %d : (%s[%d] & !(&%s[%d:%d])) ? %d : %s[%d:0]; //clamp adder output" % (self.out.width-1, self.out.name, self.name, raw_name, w, raw_name, w-1, self.out.width-1, 2**(self.out.width-1)-1, raw_name, w, raw_name, w-1, self.out.width-1, -(2**(self.out.width-1)), raw_name, self.out.width-1))
+            else:
+                s.append("wire [%d:0] %s_%s_ = (|%s[%d:%d]) ? %d : %s[%d:0]; //clamp adder output" % (self.out.width-1, self.out.name, self.name, raw_name, w,self.out.width, 2**self.out.width-1, raw_name, self.out.width-1))
+        else:
+            s.append( "wire [%d:0] %s_%s_ = %s + %s;" % (self.out.width-1, self.out.name, self.name, self.ab[0].name, self.ab[1].name))
+        return s;
+
+    def _vlog_gen_seq(self, set_at_end=False):
+        return ["  %s <= %s_%s_;" % (self.out.name, self.out.name, self.name)]
+    
+    def _vlog_gen_running(self):
+        return [ "%s <= %s;" % (self.running, self.start,) ]
+
+    def _vlog_gen_done(self):
+        return self.running
+################################################################################

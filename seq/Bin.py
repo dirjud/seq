@@ -138,7 +138,7 @@ method on his sub-Sequences.
         try:
             return self.regs[name]
         except KeyError:
-            raise Exception("Requested register %s is not available in the sequencer" % name)
+            raise Exception("Requested register %s is not available in the sequencer. Did you forget to add it to the register list?" % name)
 
     def get_child_sequencer(self, seq_name):
         return self._child_seqs[seq_name].sequencer
