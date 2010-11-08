@@ -2,3 +2,6 @@
 *~
 *.filter
 *.vcd
+*.bak
+build
+*.vvp

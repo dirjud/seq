@@ -26,6 +26,11 @@ Table Of Contents
 
    intro
    example1
+   seq
+   sequence
+   bin
+   sequence_creation
+
 
 Indices and tables
 ==================

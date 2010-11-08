@@ -154,10 +154,11 @@ same amount of time but not actually set the registers.
             self.dryrun = str(self.dryrun)
             
 
-    # The following vlog functions should not be overridden.  Rather, classes that extend this
-    # base class should implement the same function prefixed with an '_'.  This base class will
-    # then call that method and do any pre/post processing as necessary on the returned data (such
-    # as indent it).
+    # The following vlog functions should not be overridden.  Rather,
+    # classes that extend this base class should implement the same
+    # function prefixed with an '_'.  This base class will then call
+    # that method and do any pre/post processing as necessary on the
+    # returned data (such as indent it).
 
     @auto_dispatch
     def vlog_gen_declare(self):

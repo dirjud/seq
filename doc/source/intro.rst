@@ -95,4 +95,15 @@ static, meaning it always executes the ``Sequences`` of the child
 ``Bin`` in the a static order, or it can be parameterized, meaning the
 user can provide the order and number of sequences to execute.
 
-
+One will notice the slight difference in the timing of the ``done``
+signal in the ``Sequence`` and ``Bin`` timing diagrams. The ``done``
+signal out of a ``Bin`` is by default registered, which delays the
+``done`` signal one clock cycle. The user can select an option
+that prevents the ``done`` from being registered when instantiating
+the ``Bin``. If the ``done`` signal is registered, the user can
+hook the done signal directly up to the start signal to get a loop (you
+still need to logically or in an initial start pulse). When done
+is not registered, one can build up large combinational blocks, so
+for timing reasons, one may want to register the done signal. There
+is, of course, a latency build up that occurs for each level of the
+hierarchy that registers the done signal.

@@ -7,7 +7,7 @@ scenario you want to wait a fixed 10 clock cycles before issuing the
 one-shot trigger and under the scenario you wait for an external
 synchronization signal to go high.
 
-If you were to write this as Verilog, it would look like this:
+If you were to write this as Verilog, it would look something like this:
 
 .. literalinclude:: ../../examples/example1/example1_manual.v
    :language: c
@@ -105,6 +105,32 @@ optional arguments. One of the most useful is the ``active_high``. When
 
 Finally, on line 14, we call the member function ``vlog_dump()`` that
 actually generates the verilog that implements the desired specification.
+
+The generated verilog has the following ports::
+
+    module example1(
+      input clk,
+      input reset_n,
+      input ext_sync,
+      input seq,
+      input start,
+      output running,
+      output done);
+    ...
+
+To use this code, you
+
+* Hook up the ``clk`` and ``reset_n`` as normal.
+* Create an external synchronization signal and hook it up to the
+  ``ext_sync`` port. When you set the ``seq`` input high and strobe
+  the ``start`` port, then the Sync ``Sequencer`` is activated and
+  will wait for ``ext_sync`` to go high before dropping ``running``
+  and strobing the ``done`` one-shot.
+* The ``seq`` port is the ``Sequencer`` address and controls which
+  ``Sequence`` is activated when you strobe the ``start`` port.
+* The ``running`` and ``done`` signals are outputs you monitor that
+  come from the member ``Sequence`` that is selected via the ``seq``
+  address port.
 
 From this small example we are beginning to see the power of the ``seq`` 
 tool set in automatically generating verilog code from specification, 
