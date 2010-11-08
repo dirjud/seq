@@ -626,15 +626,15 @@ which sequence executes.
 
 :param detach: When this is True, the child sequence will always run
 detached.  This means that this Sequence will start the child and
-immediately report done and not wait for the child the to finish.
-When this is False, this sequence will wait until the child is done to
+immediately report done and not wait for the child to finish.  When
+this is False, this sequence will wait until the child is done to
 report done.  When this is a seq.Signal of width 1, then the signal
 will be used to determine whether this sequence detaches.  If you run
 detached, you can use the 'running' and 'done' signals to sync to
 using a Sequence.Sync.  You must be careful when running in detached
-mode because other start calls into the child bin will stop and
-cancel the detached sequence causing its running flag with no done
-signal being emitted.
+mode because other start calls into the child bin will stop and cancel
+the detached sequence causing its running flag with no done signal
+being emitted.
 """
 
     def __init__(self, sequence, set={}, detach=False, **kw):
@@ -982,7 +982,7 @@ current loop number is not exported and kept internal.
     def _vlog_gen_logic(self):
         s = ["assign repeat_%s_done_ = %s && (%s >= (%s-%d'd1));" % (self.name, self.subseqs[0].done, self.counter.name, self.count.name, self.count.width) ]
         if(self.output):
-            s.append(["assign %s = %s;" % (self.output.name, self.counter.name,)])
+            s.append("assign %s = %s;" % (self.output.name, self.counter.name,))
         return s
         
     def _vlog_gen_start_wire(self, start):
@@ -1346,7 +1346,6 @@ Example:
     def _vlog_gen_declare(self):
         w = max(self.ab[0].width, self.ab[1].width)
         s = []
-        print w, self.clamp
         if self.clamp and w >= self.out.width: # no need to clamp if output width is sufficient
             raw_name = "%s_%s_raw_" % (self.out.name, self.name,)
             s.append("wire [%d:0] %s = %s + %s;" % (w, raw_name, self.ab[0].name, self.ab[1].name))
@@ -1359,7 +1358,7 @@ Example:
         return s;
 
     def _vlog_gen_seq(self, set_at_end=False):
-        return ["  %s <= %s_%s_;" % (self.out.name, self.out.name, self.name)]
+        return ["  if(%s) %s <= %s_%s_;" % (self.start, self.out.name, self.out.name, self.name)]
     
     def _vlog_gen_running(self):
         return [ "%s <= %s;" % (self.running, self.start,) ]

@@ -4,15 +4,15 @@ import Sequence
 class Bin(object):
     """A 'Bin' reprasents a state machine that serially executes
 'Sequences'.  The state machine that can be generated from this class
-from a 'Writer' generates HDL with a sequencer interface.  This interface
+from a 'Writer' generates HDL with a bin interface.  This interface
 has two inputs that are HDL signals called 'start' and 'seq'.  The
 user sets the 'seq' input to the desired sequence number and then pulses
-the 'start' signal.  After receiving the 'start' signal, the sequencer
+the 'start' signal.  After receiving the 'start' signal, the bin
 will assert its 'running' output to high and will hold it high until
 the sequence has been executed to completion.  Upon completion, the
-sequencer will also issue a one-shot 'done' pulse.  The user must
+bin will also issue a one-shot 'done' pulse.  The user must
 hold the 'seq' input constant while the sequener is 'running'.  If
-the user issues a 'start' again while the sequencer is 'running', it
+the user issues a 'start' again while the bin is 'running', it
 immediately terminates the running sequence and starts the sequence
 specified by the input 'seq'.
 
@@ -31,11 +31,11 @@ the Sequence interface and can be things like ChildSequence, ...
     
     def __init__(self, name, seqs, regs=[], children=[], register_done=True, reset_n="reset_n"):
         """
-:param name : A string name for this sequencer.  The HDL writer will create a module with this name in a file with this name.  Think carefully about uniqueness.
+:param name : A string name for this bin.  The HDL writer will create a module with this name in a file with this name.  Think carefully about uniqueness.
 :param seqs : A list of Sequences that this Bin controls.  The index number of each sequence becomes the 'seq' code used by the HDL
 :param regs : A list of Signals that are the registers overwhich this Bin has control.  Any register in this list can be controlled by Sequences such as Set, Trigger, Toggle.
 :param children : A list of children Bins that this Bin controls.  Make it an empty list if this is a base Bin with no children.
-:param register_done: A boolean indicating whether the done signal from this sequencer is registered.  False will make the transition of child sequences faster but incure longer logic paths.  The logic can get quite long as hierarchy gets larger.  An occasional registering of the done signal can significantly reduce logic paths if the hierarchy of sequencers is deep.  Leave low level paths un-registered and register higher level sequences where an extra cycle delay in the transition is not critical.
+:param register_done: A boolean indicating whether the done signal from this bin is registered.  False will make the transition of child sequences faster but incure longer logic paths.  The logic can get quite long as hierarchy gets larger.  An occasional registering of the done signal can significantly reduce logic paths if the hierarchy of bins is deep.  Leave low level paths un-registered and register higher level sequences where an extra cycle delay in the transition is not critical.
 """
         self.name = name
         self.seqs = seqs
@@ -78,7 +78,7 @@ the Sequence interface and can be things like ChildSequence, ...
         # such static data however it likes.  The dict is keyed on type(seq)
         self._seqdata = {}
 
-        # Link the sequencers
+        # Link the bins
         self.link(self, self.seqs)
 
         # Now go through the seqs and generate several useful dictionaries
@@ -92,8 +92,8 @@ the Sequence interface and can be things like ChildSequence, ...
         for seq_ in seqs:
             seq_.register_unique_names(self.names)
 
-    def add_child_start(self, child_sequencer_name, start_sig_name):
-        self._children_starts[child_sequencer_name].append(start_sig_name)
+    def add_child_start(self, child_bin_name, start_sig_name):
+        self._children_starts[child_bin_name].append(start_sig_name)
         
     def register_port(self, port):
         if(not(self.ports.has_key(port.sig.name)) or (port.dir == "output") or (self.ports[port.sig.name].dir == "input")):
@@ -115,7 +115,7 @@ method on his sub-Sequences.
             if type(seq_) is str:
                 # Any strings in the self.seqs list will be assumed to be
                 # Child Sequences and thus automatically replaced as such.
-                seq_ = Sequence.Child(self._child_seqs[seq])
+                seq_ = Sequence.Child(self._child_seqs[seq_])
                 seqs[i] = seq_
 
             elif type(seq_) is seq.Signal:
@@ -128,7 +128,7 @@ method on his sub-Sequences.
                 raise Exception("Name for Sequence %s is not unique" % seq_.name)
             self.allseqs[seq_.name] = seq_
 
-            # link the sequencer to the sequence
+            # link the bin to the sequence
             seq_.link(self, parent, self._seqdata)
 
             # link all subseqs of this seq
@@ -138,10 +138,10 @@ method on his sub-Sequences.
         try:
             return self.regs[name]
         except KeyError:
-            raise Exception("Requested register %s is not available in the sequencer. Did you forget to add it to the register list?" % name)
+            raise Exception("Requested register %s is not available in the bin. Did you forget to add it to the register list?" % name)
 
-    def get_child_sequencer(self, seq_name):
-        return self._child_seqs[seq_name].sequencer
+    def get_child_bin(self, seq_name):
+        return self._child_seqs[seq_name].bin
 
     def _vlog_gen_done(self):
         s = []
@@ -256,7 +256,7 @@ Example:
         s.append("\n  assign done_ = (start || !running) ? 0 : ")
         for seq_ in self.seqs:
             s.append("              (seq == seq_%s_) ? %s :" % (seq_.name, seq_.done, ))
-        s.append("              1;\n // default to 1 to prevent deadlocking when this sequencer is addressed out of range")
+        s.append("              1;\n // default to 1 to prevent deadlocking when this bin is addressed out of range")
 
         # create subseq logic
         for seq_ in self.allseqs.values():
@@ -403,11 +403,11 @@ signal without any logical dependance on its member Sequences, thus
 realizing hardware savings.  So this Bin realizes logic savings
 can produce a registered done output in a single clock cycle, which is
 not possible with the more general Bin.  Therefore, with this
-sequencer, the 'registered_done' condition is realized in a single
+bin, the 'registered_done' condition is realized in a single
 clock cycle regardless.
 
 The onerous is upon the user to ensure the member Sequences assign to
-this sequencer are of length 1.  Unknown and unpredictable results
+this bin are of length 1.  Unknown and unpredictable results
 will occur if that is not the case.
 
 Debugging hint: One way to check that all the member Sequences are
