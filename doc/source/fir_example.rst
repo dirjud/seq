@@ -2,7 +2,7 @@ FIR Filter Example
 ==================
 
 Now we create a more interesting example and implement an FIR
-filter. This will introduce two new concepts of registers and ``Bin``
+filter. This will introduce two new concepts of registers and
 hierarchy.
 
 Here is the code to generate a simple FIR filter.
@@ -26,6 +26,11 @@ exported as outputs of the module. The ``mult`` and ``xout`` registers
 get specified on lines 7 and 8 as signed 16 bit and 20 bit signals,
 respectively. The ``mult`` register is controlled by the
 SerialMultiply Sequence specified as a member sequence on line 23.
+
+Hierarchy
+----------
+
+
 
 
 Top Level

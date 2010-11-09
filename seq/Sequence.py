@@ -1115,12 +1115,12 @@ dropped. If 'justify is 'right', then MSB's are dropped (although this
 is currently not implemented). Currently 'out' cannot be wider than
 the width of 'a' plus the width of 'b'. 
 
-This class implementst the differences in multiplication between
-signed versus unsigned integers, however, the three arguments must all
-be the same (meaning 'a', 'b', and 'out' must match in terms of sign).
-It is turn that signed multiplication results in an output of width
-that is one less than unsigned multiplication, but that optimization
-is not currently implemented.
+This class deals with the differences in multiplication between signed
+versus unsigned integers correctly, however, the three arguments must
+all be the same in terms of either signed or unsigned.  It is true
+that signed multiplication results in an output of width that is one
+less than unsigned multiplication, but that optimization is not
+currently implemented.
 
 :param a: Signal or int that is the first input to be multiplied.
 :param b: Signal or int that is the second input to be multiplied.
@@ -1261,6 +1261,122 @@ Signed Example::
                   "  end\n",
                   ])
         return s
+################################################################################
+
+################################################################################
+class Multiply(Sequence):
+    """
+The Multiply sequence will multiply two signals together. Unlike the
+SerialMultiply sequence, this performs the multiply in a single clock
+cycle, making it faster but larger in size. It is implemented using
+the '*' operator, which means the synthesis tool will implement it as
+it sees fit.  Signal 'a' is multiplied with signal 'b'. The result is
+stored in the 'out' register. Typically, the width of 'out' should
+equal the width of 'a' plus the width of 'b' to capture all possible
+output results (when 'a' and 'b' are unsigned). An optional argument
+'justify' can be used when the output is not wide enough and
+truncation needs to occur. If 'justify' is "left", then the output is
+left justified and LSB's are dropped. If 'justify is 'right', then
+MSB's are dropped.
+
+:param a: Signal or int that is the first input to be multiplied.
+:param b: Signal or int that is the second input to be multiplied.
+:param out: reg (signal or string) to save the result in.
+:param justify: str that is either "left" or "right"
+
+Unsigned Example::
+
+    a1 = seq.Signal("a1", width=4)
+    b1 = seq.Signal("b1", width=4)
+    out1 = seq.Signal("out1", width=8)
+    test1 = Bin.Bin(
+        name = "test1",
+        regs = [ out1, ],
+        seqs = [ Sequence.SerialMultiply(a=a1, b=b1, out="out1"), ]
+        )
+    test1.vlog_dump()
+
+Signed Example::
+
+    out2 = seq.Signal("out2", width=8, signed=True)
+    test2 = Bin.Bin(
+        name = "test2",
+        regs = [ out2, ],
+        seqs = [
+            Sequence.SerialMultiply(a=seq.Signal("a2", width=4, signed=True),
+                                    b=seq.Signal("b2", width=4, signed=True), 
+                                    out=out2),
+                ]
+        )
+    test2.vlog_dump()
+"""
+    def __init__(self, a, b, out, justify="left", clamp=False, **kw):
+        self.ab = [a,b]
+        self.out = out
+        self.justify = justify
+        self.clamp = clamp
+        if not(justify in ["right", "left"]):
+            raise Exception("justify argument must be 'right' or 'left'. You provided %s." % justify)
+
+        Sequence.__init__(self, **kw)
+
+    def link(self, bin, parent, data):
+        Sequence.link(self, bin, parent, data)
+
+        self.inputs = {}
+        for i,ab in enumerate(self.ab):
+            if type(ab) is str: # replace string with reg Signal
+                self.ab[i] = self.use_reg(ab)
+            elif(type(ab) is int):
+                self.ab[i] = seq.Signal(str(ab), width=seq.calc_width(ab+1), init=0)
+            elif type(ab) is seq.Signal:
+                self.bin.register_port(seq.Port(ab, "input")) # create as in input port as it must be supplied externally
+            else:
+                raise Exception("Unknown type=%s for a/b argument" % type(ab))
+
+        if type(self.out) is str:
+            self.out = self.find_reg(self.out)
+        elif type(self.out) is seq.Signal:
+            if not(self.out.name in self.bin.regs):
+                raise Exception("Parent does not have a register called %s in Sequence %s %s" % (self.out.name, self.name, self))
+        else:
+            raise Exception("Unknown type=%s for out argument" % type(out))
+
+    def _vlog_gen_declare(self):
+        w = self.ab[0].width + self.ab[1].width
+        signed = ""
+        if(self.out.signed):
+            signed = "signed"
+        s = []
+        raw_name = "%s_%s_raw_" % (self.out.name, self.name,)
+        s.append("wire %s [%d:0] %s = %s * %s;" % (signed, w-1, raw_name, self.ab[0].name, self.ab[1].name))
+
+        if w > self.out.width: # need to clamp if output width isn't sufficient
+            if(self.justify == "left"):
+                s.append( "wire %s [%d:0] %s_%s_ = %s[%d:%d];" % (signed, self.out.width-1, self.out.name, self.name, raw_name, w-1, w-self.out.width))
+            elif(self.clamp): # right justify and clamp
+                if(self.out.signed):
+                    s.append("wire [%d:0] %s_%s_ = (!%s[%d] & |%s[%d:%d]) ? %d : (%s[%d] & !(&%s[%d:%d])) ? %d : %s[%d:0];" % (self.out.width-1, self.out.name, self.name, raw_name, w-1, raw_name, w-2, self.out.width-1, 2**(self.out.width-1)-1, raw_name, w-1, raw_name, w-2, self.out.width-1, -(2**(self.out.width-1)), raw_name, self.out.width-1))
+                else:
+                    s.append("wire [%d:0] %s_%s_ = (|%s[%d:%d]) ? %d : %s[%d:0]; //clamp adder output" % (self.out.width-1, self.out.name, self.name, raw_name, w-1,self.out.width, 2**self.out.width-1, raw_name, self.out.width-1))
+
+            else: # right justify, no clamp, output smaller than calculation
+                s.append( "wire %s [%d:0] %s_%s_ = %s;" % (signed, self.out.width-1, self.out.name, self.name, raw_name))
+        else: # output is wider than calculation
+            if(w == self.out.width or self.justify == "right"):
+                s.append( "wire %s [%d:0] %s_%s_ = %s;" % (signed, self.out.width-1, self.out.name, self.name, raw_name))
+            else: # left justify
+                s.append( "wire %s [%d:0] %s_%s_ = { %s, {%d{1'b0}}};" % (signed, self.out.width-1, self.out.name, self.name, raw_name, self.out.width-w))
+        return s;
+
+    def _vlog_gen_seq(self, set_at_end=False):
+        return ["  if(%s) %s <= %s_%s_;" % (self.start, self.out.name, self.out.name, self.name)]
+    
+    def _vlog_gen_running(self):
+        return [ "%s <= %s;" % (self.running, self.start,) ]
+
+    def _vlog_gen_done(self):
+        return self.running
 ################################################################################
 
 ################################################################################
