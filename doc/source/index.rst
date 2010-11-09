@@ -23,6 +23,7 @@ Table Of Contents
    install
    example1
    fir_example
+   example_buf_ctl
    api
    sequence
    bin
